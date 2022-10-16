@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-set(project_name project_template)
-project(${project_name})
+set(project_name cuda_experimental)
+project(${project_name} LANGUAGES CXX CUDA)
 add_subdirectory(test)
 add_subdirectory(src)
