@@ -8,5 +8,5 @@ TEST_CASE("test_device_storage","[test_device_storage]"){
 
     auto cuda_storage = storage_type(100);
     REQUIRE(cuda_storage.size() == 100);
-    REQUIRE(cuda_storage.begin());
+    REQUIRE(cuda_storage.device_begin());
 }
