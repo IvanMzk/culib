@@ -13,10 +13,11 @@ target_link_options(Test_selected PRIVATE /STACK:104857600)
 target_sources(Test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/test_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_device_storage.cpp
 )
 
 target_sources(Test_selected PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_device_storage.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_memory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_helpers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
 )

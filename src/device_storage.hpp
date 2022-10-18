@@ -43,7 +43,7 @@ public:
         size_{n},
         begin_{allocate(n)}
     {
-        auto buffer = std::make_unique<value_type>(n);
+        auto buffer = std::make_unique<value_type[]>(n);
         std::uninitialized_fill_n(buffer.get(),n,v);
         memcpy_host_to_device(begin_,buffer.get(),n);
     }
@@ -53,14 +53,13 @@ public:
         size_{std::distance(first,last)},
         begin_{allocate(size_)}
     {
-        auto buffer = std::make_unique<value_type>(size_);
+        auto buffer = std::make_unique<value_type[]>(size_);
         std::uninitialized_copy(first,last,buffer.get());
         memcpy_host_to_device(begin_,buffer.get(),size_);
     }
     //construct storage from host init list
-    template<typename U, std::enable_if_t<std::is_convertible_v<U,value_type>,int> =0 >
-    device_storage(std::initializer_list<U> init_data):
-        size_{init_data.size()},
+    device_storage(std::initializer_list<value_type> init_data):
+        size_{static_cast<size_type>(init_data.size())},
         begin_{allocate(size_)}
     {
         memcpy_host_to_device(begin_,init_data.begin(),size_);
