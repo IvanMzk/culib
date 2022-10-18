@@ -1,11 +1,11 @@
+#include <iostream>
 #include "catch.hpp"
 #include "cuda_memory.hpp"
 
 
 TEST_CASE("test_cuda_pointer","[test_cuda_memory]"){
     using value_type = float;
-    using difference_type = std::ptrdiff_t;
-    using cuda_pointer_type = cuda_experimental::cuda_pointer<value_type,difference_type>;
+    using cuda_pointer_type = cuda_experimental::cuda_pointer<value_type>;
 
     auto v = float{};
     auto p = cuda_pointer_type{};
@@ -63,5 +63,13 @@ TEST_CASE("test_cuda_pointer","[test_cuda_memory]"){
         REQUIRE(distance(begin,begin) == 0);
         REQUIRE(distance(begin,begin+3) == 3);
         REQUIRE(distance(begin+2,end-3) == 5);
+    }
+    SECTION("get"){
+        cuda_pointer_type p{};
+        const cuda_pointer_type cp{};
+        const auto& cr = p;
+        REQUIRE(!std::is_const_v<std::remove_pointer_t<decltype(p.get())>>);
+        REQUIRE(std::is_const_v<std::remove_pointer_t<decltype(cr.get())>>);
+        REQUIRE(std::is_const_v<std::remove_pointer_t<decltype(cp.get())>>);
     }
 }

@@ -5,19 +5,18 @@
 
 namespace cuda_experimental{
 
-template<typename T, typename DiffT>
+template<typename T>
 class cuda_pointer{
-    using difference_type = DiffT;
     using value_type = T;
     using pointer = T*;
-    using const_pointer = T*;
+    using const_pointer = const T*;
 
-    pointer ptr;
+    const_pointer ptr;
 public:
     cuda_pointer() = default;
     cuda_pointer(const cuda_pointer&) = default;
     cuda_pointer& operator=(const cuda_pointer&) = default;
-    explicit cuda_pointer(pointer ptr_):
+    explicit cuda_pointer(const_pointer ptr_):
         ptr{ptr_}
     {}
     cuda_pointer& operator=(std::nullptr_t){
@@ -26,28 +25,28 @@ public:
     }
 
     operator bool()const{return static_cast<bool>(ptr);}
-    pointer get(){return ptr;}
+    pointer get(){return const_cast<pointer>(ptr);}
     const_pointer get()const{return ptr;}
 };
 
-template<typename T, typename DiffT>
-auto operator==(const cuda_pointer<T,DiffT>& lhs, const cuda_pointer<T,DiffT>& rhs){return lhs.get() == rhs.get();}
-template<typename T, typename DiffT>
-auto operator!=(const cuda_pointer<T,DiffT>& lhs, const cuda_pointer<T,DiffT>& rhs){return !(lhs == rhs);}
-template<typename T, typename DiffT>
-auto operator-(const cuda_pointer<T,DiffT>& lhs, const cuda_pointer<T,DiffT>& rhs){return lhs.get() - rhs.get();}
-template<typename T, typename DiffT, typename U>
-auto operator+(const cuda_pointer<T,DiffT>& lhs, const U& rhs){return cuda_pointer<T,DiffT>{lhs.get() + rhs};}
-template<typename T, typename DiffT, typename U>
-auto operator+(const U& lhs, const cuda_pointer<T,DiffT>& rhs){return rhs+lhs;}
-template<typename T, typename DiffT, typename U>
-auto operator-(const cuda_pointer<T,DiffT>& lhs, const U& rhs){return lhs+-rhs;}
-template<typename T, typename DiffT>
-auto distance(const cuda_pointer<T,DiffT>& begin, const cuda_pointer<T,DiffT>& end){return end-begin;}
-template<typename T, typename DiffT>
-auto ptr_to_void(const cuda_pointer<T,DiffT>& p){return static_cast<const void*>(p.get());}
-template<typename T, typename DiffT>
-auto ptr_to_void(cuda_pointer<T,DiffT>& p){return static_cast<void*>(p.get());}
+template<typename T>
+auto operator==(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return lhs.get() == rhs.get();}
+template<typename T>
+auto operator!=(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return !(lhs == rhs);}
+template<typename T>
+auto operator-(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return lhs.get() - rhs.get();}
+template<typename T, typename U>
+auto operator+(const cuda_pointer<T>& lhs, const U& rhs){return cuda_pointer<T>{lhs.get() + rhs};}
+template<typename T, typename U>
+auto operator+(const U& lhs, const cuda_pointer<T>& rhs){return rhs+lhs;}
+template<typename T, typename U>
+auto operator-(const cuda_pointer<T>& lhs, const U& rhs){return lhs+-rhs;}
+template<typename T>
+auto distance(const cuda_pointer<T>& begin, const cuda_pointer<T>& end){return end-begin;}
+template<typename T>
+auto ptr_to_void(const cuda_pointer<T>& p){return static_cast<const void*>(p.get());}
+template<typename T>
+auto ptr_to_void(cuda_pointer<T>& p){return static_cast<void*>(p.get());}
 template<typename T>
 auto ptr_to_void(const T* p){return static_cast<const void*>(p);}
 template<typename T>
@@ -61,8 +60,8 @@ public:
     using difference_type = std::ptrdiff_t;
     using size_type = difference_type;
     using value_type = T;
-    using pointer = cuda_pointer<T,difference_type>;
-    using const_pointer = const cuda_pointer<T,difference_type>;
+    using pointer = cuda_pointer<T>;
+    using const_pointer = const cuda_pointer<T>;
 
     pointer allocate(size_type n){
         void* p;

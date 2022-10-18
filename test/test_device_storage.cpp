@@ -62,7 +62,7 @@ TEST_CASE("test_device_storage_device_range_constructor","[test_device_storage]"
     using storage_type = cuda_experimental::device_storage<value_type>;
 
     auto cuda_storage = storage_type({1,2,3,4,5,6,7,8,9,10});
-    auto storage_from_device_range = storage_type(cuda_storage.device_begin()+1,cuda_storage.device_end());
-    REQUIRE(storage_from_device_range.size() == 9);
+    auto storage_from_device_range = storage_type(cuda_storage.device_begin()+1,cuda_storage.device_end()-1);
+    REQUIRE(storage_from_device_range.size() == 8);
 }
 
