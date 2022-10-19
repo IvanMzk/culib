@@ -3,10 +3,15 @@
 #include "cuda_memory.hpp"
 
 
-TEST_CASE("test_cuda_pointer","[test_cuda_memory]"){
+TEMPLATE_TEST_CASE("test_cuda_pointer","[test_cuda_memory]",
+    cuda_experimental::cuda_pointer<float>,
+    cuda_experimental::cuda_pointer<const float>
+)
+{
     using value_type = float;
-    using cuda_pointer_type = cuda_experimental::cuda_pointer<value_type>;
+    using cuda_pointer_type = TestType;
 
+    REQUIRE(std::is_trivially_copyable_v<cuda_pointer_type>);
     auto v = float{};
     auto p = cuda_pointer_type{};
     REQUIRE(p.get() == nullptr);
@@ -64,12 +69,49 @@ TEST_CASE("test_cuda_pointer","[test_cuda_memory]"){
         REQUIRE(distance(begin,begin+3) == 3);
         REQUIRE(distance(begin+2,end-3) == 5);
     }
-    SECTION("get"){
-        cuda_pointer_type p{};
-        const cuda_pointer_type cp{};
-        const auto& cr = p;
-        REQUIRE(!std::is_const_v<std::remove_pointer_t<decltype(p.get())>>);
-        REQUIRE(std::is_const_v<std::remove_pointer_t<decltype(cr.get())>>);
-        REQUIRE(std::is_const_v<std::remove_pointer_t<decltype(cp.get())>>);
+}
+
+TEST_CASE("test_copy","[test_cuda_memory]"){
+    using value_type = float;
+    using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
+    using cuda_experimental::cuda_pointer;
+    using cuda_experimental::copy;
+
+    auto allocator = cuda_allocator_type{};
+    constexpr std::size_t n{100};
+    auto dev_ptr = allocator.allocate(n);
+    auto const_dev_ptr = cuda_pointer<const value_type>{dev_ptr};
+
+    SECTION("copy_host_device"){
+        constexpr std::size_t a_len{10};
+        value_type a[a_len] = {1,2,3,4,5,6,7,8,9,10};
+        value_type a_copy[a_len]{};
+        copy(a,a+a_len,dev_ptr);
+        SECTION("copy_from_dev_ptr"){
+            copy(dev_ptr,dev_ptr+a_len,a_copy);
+            REQUIRE(std::equal(a,a+a_len,a_copy));
+        }
+        SECTION("copy_from_const_dev_ptr"){
+            copy(const_dev_ptr,const_dev_ptr+a_len,a_copy);
+            REQUIRE(std::equal(a,a+a_len,a_copy));
+        }
     }
+    SECTION("copy_device_device"){
+        constexpr std::size_t a_len{10};
+        value_type a[a_len] = {1,2,3,4,5,6,7,8,9,10};
+        value_type a_copy[a_len]{};
+        copy(a,a+a_len,dev_ptr);
+        auto dev_ptr_copy = allocator.allocate(a_len);
+        SECTION("copy_from_dev_ptr"){
+            copy(dev_ptr,dev_ptr+a_len,dev_ptr_copy);
+            copy(dev_ptr_copy,dev_ptr_copy+a_len,a_copy);
+            REQUIRE(std::equal(a,a+a_len,a_copy));
+        }
+        SECTION("copy_from_const_dev_ptr"){
+            copy(const_dev_ptr,const_dev_ptr+a_len,dev_ptr_copy);
+            copy(const_dev_ptr,const_dev_ptr+a_len,a_copy);
+            REQUIRE(std::equal(a,a+a_len,a_copy));
+        }
+    }
+    allocator.deallocate(dev_ptr,n);
 }

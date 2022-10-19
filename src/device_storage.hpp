@@ -2,6 +2,7 @@
 #define DEVICE_STORAGE_HPP_
 
 #include <memory>
+#include <iostream>
 #include "cuda_memory.hpp"
 
 namespace cuda_experimental{
@@ -21,6 +22,7 @@ public:
     using size_type = typename memory_handler_type::size_type;
     using value_type = typename memory_handler_type::value_type;
     using pointer = typename memory_handler_type::pointer;
+    using const_pointer = typename memory_handler_type::const_pointer;
 
     ~device_storage(){deallocate();}
     device_storage& operator=(const device_storage&) = delete;
@@ -65,15 +67,17 @@ public:
         memcpy_host_to_device(begin_,init_data.begin(),size_);
     }
     //construct storage from device iterators range
-    device_storage(pointer first, pointer last):
+    device_storage(const_pointer first, const_pointer last):
         size_{distance(first,last)},
         begin_{allocate(size_)}
     {
         memcpy_device_to_device(begin_,first,size_);
     }
 
-    auto device_begin()const{return begin_;}
-    auto device_end()const{return  begin_ + size_;}
+    auto device_begin(){return begin_;}
+    auto device_end(){return  begin_ + size_;}
+    auto device_begin()const{return const_pointer{begin_};}
+    auto device_end()const{return  const_pointer{begin_ + size_};}
     auto size()const{return size_;}
     auto clone()const{return device_storage{*this};}
     void free(){deallocate();}
