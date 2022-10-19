@@ -13,16 +13,17 @@ namespace detail{
 }   //end of namespace detail
 
 
-template<typename T, typename MemoryHandler = cuda_memory_handler<T>>
-class device_storage : private MemoryHandler
+template<typename T, typename Alloc = cuda_allocator<T>>
+class device_storage : private Alloc
 {
-    using memory_handler_type = MemoryHandler;
+    using allocator_type = Alloc;
 public:
-    using difference_type = typename memory_handler_type::difference_type;
-    using size_type = typename memory_handler_type::size_type;
-    using value_type = typename memory_handler_type::value_type;
-    using pointer = typename memory_handler_type::pointer;
-    using const_pointer = typename memory_handler_type::const_pointer;
+    using difference_type = typename allocator_type::difference_type;
+    using size_type = typename allocator_type::size_type;
+    using value_type = typename allocator_type::value_type;
+    using pointer = typename allocator_type::pointer;
+    using const_pointer = typename allocator_type::const_pointer;
+    static_assert(std::is_trivially_copyable_v<value_type>);
 
     ~device_storage(){deallocate();}
     device_storage& operator=(const device_storage&) = delete;
@@ -45,9 +46,9 @@ public:
         size_{n},
         begin_{allocate(n)}
     {
-        auto buffer = std::make_unique<value_type[]>(n);
+        auto buffer = make_host_buffer<value_type>(n);
         std::uninitialized_fill_n(buffer.get(),n,v);
-        memcpy_host_to_device(begin_,buffer.get(),n);
+        copy(buffer.get(), buffer.get()+n, begin_);
     }
     //construct storage from host iterators range
     template<typename It, std::enable_if_t<detail::is_iterator<It> ,int> =0 >
@@ -55,47 +56,42 @@ public:
         size_{std::distance(first,last)},
         begin_{allocate(size_)}
     {
-        auto buffer = std::make_unique<value_type[]>(size_);
-        std::uninitialized_copy(first,last,buffer.get());
-        memcpy_host_to_device(begin_,buffer.get(),size_);
+        copy(first,last,begin_);
     }
     //construct storage from host init list
     device_storage(std::initializer_list<value_type> init_data):
-        size_{static_cast<size_type>(init_data.size())},
-        begin_{allocate(size_)}
-    {
-        memcpy_host_to_device(begin_,init_data.begin(),size_);
-    }
+        device_storage(init_data.begin(), init_data.end())
+    {}
     //construct storage from device iterators range
     device_storage(const_pointer first, const_pointer last):
         size_{distance(first,last)},
         begin_{allocate(size_)}
     {
-        memcpy_device_to_device(begin_,first,size_);
+        copy(first,last,begin_);
     }
 
+    auto data(){return begin_;}
+    auto data()const{return  const_pointer(begin_);}
     auto device_begin(){return begin_;}
     auto device_end(){return  begin_ + size_;}
     auto device_begin()const{return const_pointer{begin_};}
     auto device_end()const{return  const_pointer{begin_ + size_};}
     auto size()const{return size_;}
+    auto empty()const{return !static_cast<bool>(begin_);}
     auto clone()const{return device_storage{*this};}
     void free(){deallocate();}
 
 private:
+    //private copy constructor, should use clone() to make copy
     device_storage(const device_storage& other):
-        size_{other.size_},
-        begin_{allocate(other.size_)}
-    {
-        memcpy_device_to_device(begin_,other.begin_,size_);
-    }
-
+        device_storage(other.device_begin(),other.device_end())
+    {}
     pointer allocate(const size_type& n){
-        return memory_handler_type::allocate(n);
+        return allocator_type::allocate(n);
     }
     void deallocate(){
         if (begin_){
-            memory_handler_type::deallocate(begin_,size_);
+            allocator_type::deallocate(begin_,size_);
             size_ = 0;
             begin_ = nullptr;
         }

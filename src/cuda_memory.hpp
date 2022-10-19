@@ -114,28 +114,6 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, cuda_pointer<std::remove_
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
 }
 
-template<typename T>
-class cuda_memory_handler : public cuda_allocator<T>
-{
-public:
-    using typename cuda_allocator::size_type;
-    using typename cuda_allocator::value_type;
-    using cuda_pointer = typename cuda_allocator::pointer;
-    using const_cuda_pointer = typename cuda_allocator::const_pointer;
-    using host_pointer = T*;
-    using const_host_pointer = const T*;
-
-    void memcpy_host_to_device(cuda_pointer device_dst, const_host_pointer host_src, size_type n){
-        cuda_error_check(cudaMemcpy(ptr_to_void(device_dst), ptr_to_void(host_src), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice));
-    }
-    void memcpy_device_to_host(host_pointer host_dst, const_cuda_pointer device_src, size_type n){
-        cuda_error_check(cudaMemcpy(ptr_to_void(host_src), ptr_to_void(device_dst), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost));
-    }
-    void memcpy_device_to_device(cuda_pointer device_dst, const_cuda_pointer device_src, size_type n){
-        cuda_error_check(cudaMemcpy(ptr_to_void(device_dst), ptr_to_void(device_dst), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
-    }
-};
-
 }   //end of namespace cuda_experimental
 
 #endif

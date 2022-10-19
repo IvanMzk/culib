@@ -96,6 +96,20 @@ TEST_CASE("test_copy","[test_cuda_memory]"){
             REQUIRE(std::equal(a,a+a_len,a_copy));
         }
     }
+    SECTION("copy_host_device_iter"){
+        auto a = std::vector<value_type>{1,2,3,4,5,6,7,8,9,10};
+        auto a_len = a.size();
+        auto a_copy = std::vector<value_type>(a_len);
+        copy(a.begin(),a.end(),dev_ptr);
+        SECTION("copy_from_dev_ptr"){
+            copy(dev_ptr,dev_ptr+a_len,a_copy.begin());
+            REQUIRE(std::equal(a.begin(),a.end(),a_copy.begin()));
+        }
+        SECTION("copy_from_const_dev_ptr"){
+            copy(const_dev_ptr,const_dev_ptr+a_len,a_copy.begin());
+            REQUIRE(std::equal(a.begin(),a.end(),a_copy.begin()));
+        }
+    }
     SECTION("copy_device_device"){
         constexpr std::size_t a_len{10};
         value_type a[a_len] = {1,2,3,4,5,6,7,8,9,10};
