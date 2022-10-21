@@ -64,6 +64,8 @@ public:
     using value_type = T;
     using pointer = cuda_pointer<T>;
     using const_pointer = cuda_pointer<const T>;
+    using propagate_on_container_copy_assignment = std::false_type;
+    using propagate_on_container_move_assignment = std::false_type;
 
     pointer allocate(size_type n){
         void* p;
@@ -73,6 +75,7 @@ public:
     void deallocate(pointer p, size_type n){
         cuda_error_check(cudaFree(ptr_to_void(p)));
     }
+    bool operator==(const cuda_allocator& other){return true;}
 };
 
 template<typename T, typename SizeT>
@@ -113,7 +116,7 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, It d_first){
     copy(first,last,buffer.get());
     std::copy_n(buffer.get(),n,d_first);
 }
-//copy from device to device
+//copy from device to device, src and dst must be allocated on same device
 template<typename T>
 void copy(cuda_pointer<T> first, cuda_pointer<T> last, cuda_pointer<std::remove_const_t<T>> d_first){
     auto n = distance(first,last);

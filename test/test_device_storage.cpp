@@ -4,6 +4,17 @@
 #include "device_storage.hpp"
 
 
+TEST_CASE("test_is_iterator","[test_tensor]"){
+    using cuda_experimental::detail::is_iterator;
+    using cuda_experimental::cuda_pointer;
+    REQUIRE(!is_iterator<int>);
+    REQUIRE(!is_iterator<cuda_pointer<float>>);
+    REQUIRE(!is_iterator<std::vector<int>>);
+    REQUIRE(is_iterator<std::vector<int>::iterator>);
+    REQUIRE(is_iterator<const float*>);
+    REQUIRE(is_iterator<float*>);
+}
+
 TEST_CASE("test_device_storage_default_constructor","[test_device_storage]"){
     using value_type = float;
     using cuda_experimental::distance;
@@ -150,5 +161,34 @@ TEST_CASE("test_device_storage_free","[test_device_storage]"){
     cuda_storage.free();
     REQUIRE(cuda_storage.size() == 0);
     REQUIRE(cuda_storage.empty());
+}
+
+TEST_CASE("test_device_storage_copy_assignment","[test_device_storage]"){
+    using value_type = float;
+    using storage_type = cuda_experimental::device_storage<value_type>;
+
+    auto n = std::size_t{10};
+    auto cuda_storage = storage_type(n,1);
+
+    SECTION("not_equal_size_realloction"){
+        auto storage_copy = storage_type(n+10,0);
+        REQUIRE(storage_copy.size() != n);
+        storage_copy = cuda_storage;
+        REQUIRE(cuda_storage.size() == n);
+        REQUIRE(!cuda_storage.empty());
+        REQUIRE(storage_copy.size() == n);
+        REQUIRE(!storage_copy.empty());
+        REQUIRE(storage_copy.data() != cuda_storage.data());
+    }
+    SECTION("equal_size_no_realloction"){
+        auto storage_copy = storage_type(n,0);
+        REQUIRE(storage_copy.size() == n);
+        storage_copy = cuda_storage;
+        REQUIRE(cuda_storage.size() == n);
+        REQUIRE(!cuda_storage.empty());
+        REQUIRE(storage_copy.size() == n);
+        REQUIRE(!storage_copy.empty());
+        REQUIRE(storage_copy.data() != cuda_storage.data());
+    }
 }
 
