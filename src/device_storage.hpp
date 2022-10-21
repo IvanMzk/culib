@@ -26,9 +26,9 @@ public:
     static_assert(std::is_trivially_copyable_v<value_type>);
 
     ~device_storage(){deallocate();}
+    device_storage() = default;
     device_storage& operator=(const device_storage&) = delete;
     device_storage& operator=(device_storage&&) = delete;
-    device_storage() = default;
     device_storage(device_storage&& other):
         size_{other.size_},
         begin_{other.begin_}
@@ -51,7 +51,7 @@ public:
         copy(buffer.get(), buffer.get()+n, begin_);
     }
     //construct storage from host iterators range
-    template<typename It, std::enable_if_t<detail::is_iterator<It> ,int> =0 >
+    template<typename It, std::enable_if_t<detail::is_iterator<It>,int> =0 >
     device_storage(It first, It last):
         size_{std::distance(first,last)},
         begin_{allocate(size_)}

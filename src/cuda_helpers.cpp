@@ -10,4 +10,8 @@ void cuda_assert(cudaError_t err, const char* file, int line) {
     }
 }
 
+bool is_cuda_success(cudaError_t err){
+    return err == cudaSuccess;
+}
+
 }   //end of namespace cuda_experimental

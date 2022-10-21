@@ -43,8 +43,10 @@ template<typename T, typename U>
 auto operator+(const U& lhs, const cuda_pointer<T>& rhs){return rhs+lhs;}
 template<typename T, typename U>
 auto operator-(const cuda_pointer<T>& lhs, const U& rhs){return lhs+-rhs;}
+
 template<typename T>
 auto distance(const cuda_pointer<T>& begin, const cuda_pointer<T>& end){return end-begin;}
+
 template<typename T>
 auto ptr_to_void(const cuda_pointer<T>& p){return static_cast<std::conditional_t<std::is_const_v<T>,const void*,void*>>(p.get());}
 template<typename T>
@@ -75,9 +77,13 @@ public:
 
 template<typename T, typename SizeT>
 auto make_host_buffer(const SizeT& n){
-    return std::make_unique<T[]>(n);
+    void* p;
+    cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),cudaHostAllocWriteCombined));
+    auto deleter = [](T* p_){cudaFreeHost(p_);};
+    return std::unique_ptr<T,decltype(deleter)>(static_cast<T*>(p), deleter);
 }
 
+//copy routines to transfer between host and device, parameters of ordinary pointers types treats as pointers to host memory
 //copy from host to device
 template<typename T>
 void copy(const T* first, const T* last, cuda_pointer<T> d_first){
@@ -107,7 +113,7 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, It d_first){
     copy(first,last,buffer.get());
     std::copy_n(buffer.get(),n,d_first);
 }
-//copy from device range to device
+//copy from device to device
 template<typename T>
 void copy(cuda_pointer<T> first, cuda_pointer<T> last, cuda_pointer<std::remove_const_t<T>> d_first){
     auto n = distance(first,last);
