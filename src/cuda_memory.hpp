@@ -12,12 +12,17 @@ class cuda_pointer{
 public:
     using value_type = T;
     using pointer = T*;
+    using device_id_type = int;
 
-    cuda_pointer() = default;
     cuda_pointer(const cuda_pointer&) = default;
     cuda_pointer& operator=(const cuda_pointer&) = default;
-    explicit cuda_pointer(pointer ptr_):
-        ptr{ptr_}
+    cuda_pointer():
+        ptr{nullptr},
+        device_id{0}
+    {}
+    cuda_pointer(pointer ptr_, device_id_type device_id_ = 0):
+        ptr{ptr_},
+        device_id{device_id_}
     {}
     cuda_pointer& operator=(std::nullptr_t){
         ptr = nullptr;
@@ -27,12 +32,14 @@ public:
     operator cuda_pointer<const T>()const{return cuda_pointer<const T>{ptr};}
     operator bool()const{return static_cast<bool>(ptr);}
     pointer get()const{return ptr;}
+    device_id_type id()const{return device_id;}
 private:
     pointer ptr;
+    device_id_type device_id;
 };
 
 template<typename T>
-auto operator==(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return lhs.get() == rhs.get();}
+auto operator==(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return lhs.get() == rhs.get() && lhs.id() == rhs.id();}
 template<typename T>
 auto operator!=(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return !(lhs == rhs);}
 template<typename T>
