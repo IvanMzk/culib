@@ -29,8 +29,8 @@ public:
         return *this;
     }
 
-    operator cuda_pointer<const T>()const{return cuda_pointer<const T>{ptr};}
     operator bool()const{return static_cast<bool>(ptr);}
+    operator cuda_pointer<const T>()const{return cuda_pointer<const T>{ptr};}
     pointer get()const{return ptr;}
     device_id_type id()const{return device_id;}
 private:
@@ -61,6 +61,9 @@ auto ptr_to_void(const T* p){return static_cast<const void*>(p);}
 template<typename T>
 auto ptr_to_void(T* p){return static_cast<void*>(p);}
 
+template<typename> constexpr bool is_cuda_pointer_v = false;
+template<typename T> constexpr bool is_cuda_pointer_v<cuda_pointer<T>> = true;
+
 
 template<typename T>
 class cuda_allocator
@@ -72,21 +75,36 @@ public:
     using value_type = T;
     using pointer = cuda_pointer<T>;
     using const_pointer = cuda_pointer<const T>;
-    using propagate_on_container_copy_assignment = std::false_type;
-    using propagate_on_container_move_assignment = std::false_type;
+    using propagate_on_container_copy_assignment = std::true_type;
+    using propagate_on_container_move_assignment = std::true_type;
 
+    cuda_allocator(const cuda_allocator&) = default;
+    cuda_allocator(cuda_allocator&&) = default;
+    cuda_allocator& operator=(const cuda_allocator&) = default;
+    cuda_allocator& operator=(cuda_allocator&&) = default;
+    cuda_allocator(device_id_type managed_device_id_ = cuda_get_device()):
+        managed_device_id{managed_device_id_}
+    {}
     pointer allocate(size_type n){
-        void* p;
-        cuda_error_check(cudaMalloc(&p,n*sizeof(T)));
-        return pointer{reinterpret_cast<T*>(p),cuda_get_device()};
+        return allocator_helper([this](size_type n){void* p; cuda_error_check(cudaMalloc(&p,n*sizeof(T))); return pointer{reinterpret_cast<T*>(p),managed_device_id};}, n);
     }
-    void deallocate(pointer p, size_type n){
-        auto device_id = cuda_get_device();
-        cuda_error_check(cudaSetDevice(p.id()));
-        cuda_error_check(cudaFree(ptr_to_void(p)));
-        cuda_error_check(cudaSetDevice(device_id));
+    void deallocate(pointer p, size_type){
+        return allocator_helper([this](pointer p){cuda_error_check(cudaFree(ptr_to_void(p)));}, p);
     }
-    bool operator==(const cuda_allocator& other){return true;}
+    bool operator==(const cuda_allocator& other)const{return managed_device_id == other.managed_device_id;}
+private:
+    struct device_restorer{
+        ~device_restorer(){cuda_error_check(cudaSetDevice(device));}
+        device_id_type device{cuda_get_device()};
+    };
+    template<typename F, typename...Args>
+    auto allocator_helper(const F& operation, Args&&...args){
+        device_restorer restorer{};
+        cuda_error_check(cudaSetDevice(managed_device_id));
+        return operation(std::forward<Args>(args)...);
+    }
+
+    device_id_type managed_device_id;
 };
 
 template<typename T, typename SizeT>
@@ -109,7 +127,7 @@ void copy(const T* first, const T* last, cuda_pointer<T> d_first){
     auto n = std::distance(first,last);
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice));
 }
-template<typename It, std::enable_if_t<!std::is_pointer_v<It>,int> =0 >
+template<typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_cuda_pointer_v<It>,int> =0 >
 void copy(It first, It last, cuda_pointer<typename std::iterator_traits<It>::value_type> d_first){
     static_assert(!std::is_pointer_v<It>);
     auto n = std::distance(first,last);
@@ -123,7 +141,7 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, std::remove_const_t<T>* d
     auto n = distance(first,last);
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost));
 }
-template<typename T, typename It, std::enable_if_t<!std::is_pointer_v<It>,int> =0>
+template<typename T, typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_cuda_pointer_v<It>,int> =0>
 void copy(cuda_pointer<T> first, cuda_pointer<T> last, It d_first){
     static_assert(!std::is_pointer_v<It>);
     static_assert(std::is_same_v<std::decay_t<T>, typename std::iterator_traits<It>::value_type>);
