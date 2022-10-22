@@ -65,6 +65,7 @@ auto ptr_to_void(T* p){return static_cast<void*>(p);}
 template<typename T>
 class cuda_allocator
 {
+    using device_id_type = int;
 public:
     using difference_type = std::ptrdiff_t;
     using size_type = difference_type;
@@ -77,10 +78,13 @@ public:
     pointer allocate(size_type n){
         void* p;
         cuda_error_check(cudaMalloc(&p,n*sizeof(T)));
-        return pointer{reinterpret_cast<T*>(p)};
+        return pointer{reinterpret_cast<T*>(p),cuda_get_device()};
     }
     void deallocate(pointer p, size_type n){
+        auto device_id = cuda_get_device();
+        cuda_error_check(cudaSetDevice(p.id()));
         cuda_error_check(cudaFree(ptr_to_void(p)));
+        cuda_error_check(cudaSetDevice(device_id));
     }
     bool operator==(const cuda_allocator& other){return true;}
 };

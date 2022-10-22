@@ -141,5 +141,7 @@ TEST_CASE("test_copy","[test_cuda_memory]"){
             REQUIRE(std::equal(a,a+a_len,a_copy));
         }
     }
+    SECTION("copy_device_device_exception"){
+    }
     allocator.deallocate(dev_ptr,n);
 }
