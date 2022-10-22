@@ -86,9 +86,9 @@ public:
 };
 
 template<typename T, typename SizeT>
-auto make_host_locked_buffer(const SizeT& n){
+auto make_host_locked_buffer(const SizeT& n, unsigned int flags = cudaHostAllocDefault){
     void* p;
-    cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),cudaHostAllocWriteCombined));
+    cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),flags));
     auto deleter = [](T* p_){cudaFreeHost(p_);};
     return std::unique_ptr<T,decltype(deleter)>(static_cast<T*>(p), deleter);
 }
@@ -109,7 +109,7 @@ template<typename It, std::enable_if_t<!std::is_pointer_v<It>,int> =0 >
 void copy(It first, It last, cuda_pointer<typename std::iterator_traits<It>::value_type> d_first){
     static_assert(!std::is_pointer_v<It>);
     auto n = std::distance(first,last);
-    auto buffer = make_host_locked_buffer<std::iterator_traits<It>::value_type>(n);
+    auto buffer = make_host_locked_buffer<std::iterator_traits<It>::value_type>(n,cudaHostAllocWriteCombined);
     std::uninitialized_copy_n(first,n,buffer.get());
     copy(buffer.get(),buffer.get()+n,d_first);
 }
@@ -124,7 +124,7 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, It d_first){
     static_assert(!std::is_pointer_v<It>);
     static_assert(std::is_same_v<std::decay_t<T>, typename std::iterator_traits<It>::value_type>);
     auto n = distance(first,last);
-    auto buffer = make_host_buffer<std::iterator_traits<It>::value_type>(n);
+    auto buffer = make_host_locked_buffer<std::iterator_traits<It>::value_type>(n);
     copy(first,last,buffer.get());
     std::copy_n(buffer.get(),n,d_first);
 }
