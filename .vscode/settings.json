@@ -78,6 +78,7 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "__nullptr": "cpp",
-        "resumable": "cpp"
+        "resumable": "cpp",
+        "__node_handle": "cpp"
     }
 }

@@ -3,7 +3,6 @@
 #include "catch.hpp"
 #include "device_storage.hpp"
 
-
 TEST_CASE("test_is_iterator","[test_tensor]"){
     using cuda_experimental::detail::is_iterator;
     using cuda_experimental::cuda_pointer;
@@ -192,3 +191,17 @@ TEST_CASE("test_device_storage_copy_assignment","[test_device_storage]"){
     }
 }
 
+TEST_CASE("test_device_storage_move_assignment","[test_device_storage]"){
+    using value_type = float;
+    using storage_type = cuda_experimental::device_storage<value_type>;
+
+    auto n = std::size_t{10};
+    auto cuda_storage = storage_type(n,1);
+
+    auto storage_copy = storage_type(n+10,0);
+    storage_copy = std::move(cuda_storage);
+    REQUIRE(storage_copy.size() == n);
+    REQUIRE(!storage_copy.empty());
+    REQUIRE(cuda_storage.size() == 0);
+    REQUIRE(cuda_storage.empty());
+}

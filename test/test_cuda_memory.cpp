@@ -142,6 +142,9 @@ TEST_CASE("test_copy","[test_cuda_memory]"){
         }
     }
     SECTION("copy_device_device_exception"){
+        auto p_first = cuda_pointer<value_type>{nullptr,0};
+        auto p_last = cuda_pointer<value_type>{nullptr,1};
+        REQUIRE_THROWS_AS(copy(p_first, p_last, dev_ptr),cuda_experimental::cuda_exception);
     }
     allocator.deallocate(dev_ptr,n);
 }
