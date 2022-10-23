@@ -12,17 +12,11 @@ class cuda_pointer{
 public:
     using value_type = T;
     using pointer = T*;
-    using device_id_type = int;
 
     cuda_pointer(const cuda_pointer&) = default;
     cuda_pointer& operator=(const cuda_pointer&) = default;
-    cuda_pointer():
-        ptr{nullptr},
-        device_id{0}
-    {}
-    cuda_pointer(pointer ptr_, device_id_type device_id_ = 0):
-        ptr{ptr_},
-        device_id{device_id_}
+    cuda_pointer(pointer ptr_ = nullptr):
+        ptr{ptr_}
     {}
     cuda_pointer& operator=(std::nullptr_t){
         ptr = nullptr;
@@ -32,14 +26,17 @@ public:
     operator bool()const{return static_cast<bool>(ptr);}
     operator cuda_pointer<const T>()const{return cuda_pointer<const T>{ptr};}
     pointer get()const{return ptr;}
-    device_id_type id()const{return device_id;}
+    auto device()const{
+        cudaPointerAttributes ptr_attributes;
+        cuda_error_check(cudaPointerGetAttributes(&ptr_attributes, ptr));
+        return ptr_attributes.device;
+    }
 private:
     pointer ptr;
-    device_id_type device_id;
 };
 
 template<typename T>
-auto operator==(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return lhs.get() == rhs.get() && lhs.id() == rhs.id();}
+auto operator==(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return lhs.get() == rhs.get();}
 template<typename T>
 auto operator!=(const cuda_pointer<T>& lhs, const cuda_pointer<T>& rhs){return !(lhs == rhs);}
 template<typename T>
@@ -86,7 +83,7 @@ public:
         managed_device_id{managed_device_id_}
     {}
     pointer allocate(size_type n){
-        return allocator_helper([this](size_type n){void* p; cuda_error_check(cudaMalloc(&p,n*sizeof(T))); return pointer{static_cast<T*>(p),managed_device_id};}, n);
+        return allocator_helper([this](size_type n){void* p; cuda_error_check(cudaMalloc(&p,n*sizeof(T))); return pointer{static_cast<T*>(p)};}, n);
     }
     void deallocate(pointer p, size_type){
         return allocator_helper([this](pointer p){cuda_error_check(cudaFree(ptr_to_void(p)));}, p);
@@ -143,7 +140,7 @@ public:
         }
         void* p;
         cuda_error_check(cudaHostGetDevicePointer(&p, host_buffer, 0));
-        return pointer{static_cast<T*>(p),cuda_get_device()};
+        return pointer{static_cast<T*>(p)};
     }
     void deallocate(pointer p, size_type){
         if (host_data){
@@ -205,11 +202,11 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, It d_first){
 //copy from device to device, src and dst must be allocated on same device
 template<typename T>
 void copy(cuda_pointer<T> first, cuda_pointer<T> last, cuda_pointer<std::remove_const_t<T>> d_first){
-    if (first.id() != last.id()){
+    if (first.device() != last.device()){
         throw cuda_exception("copy device-device invalid source range");
     }
     auto n = distance(first,last);
-    if (first.id() == d_first.id()){
+    if (first.device() == d_first.device()){
         cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
     }else{
         auto buffer = make_host_locked_buffer<std::remove_const_t<T>>(n,cudaHostAllocWriteCombined);

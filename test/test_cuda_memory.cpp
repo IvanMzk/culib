@@ -13,50 +13,35 @@ TEMPLATE_TEST_CASE("test_cuda_pointer","[test_cuda_memory]",
 
     REQUIRE(std::is_trivially_copyable_v<cuda_pointer_type>);
     float v{};
-    int id{1};
     auto p = cuda_pointer_type{};
     REQUIRE(p.get() == nullptr);
-    REQUIRE(p.id() == 0);
-
     SECTION("from_pointer_construction"){
         auto p = cuda_pointer_type{&v};
         REQUIRE(p.get() == &v);
-        REQUIRE(p.id() == 0);
         auto p1 = cuda_pointer_type{nullptr};
         REQUIRE(p1.get() == nullptr);
-        REQUIRE(p1.id() == 0);
-    }
-    SECTION("from_pointer_id_construction"){
-        auto p = cuda_pointer_type{&v, id};
-        REQUIRE(p.get() == &v);
-        REQUIRE(p.id() == id);
     }
     SECTION("copy_construction"){
-        auto p = cuda_pointer_type{&v, id};
+        auto p = cuda_pointer_type{&v};
         auto p1 = p;
         REQUIRE(p1.get() == p.get());
-        REQUIRE(p1.id() == p.id());
     }
     SECTION("copy_assignment"){
         auto p = cuda_pointer_type{};
-        auto p1 = cuda_pointer_type{&v, id};
+        auto p1 = cuda_pointer_type{&v};
         p = p1;
         REQUIRE(p.get() == p1.get());
-        REQUIRE(p.id() == p1.id());
         p1 = nullptr;
         REQUIRE(p1.get() == nullptr);
-        REQUIRE(p1.id() == id);
     }
     SECTION("equality"){
         auto p = cuda_pointer_type{};
-        auto p1 = cuda_pointer_type{&v,id};
-        auto p2 = cuda_pointer_type{&v,id};
-        auto p3 = cuda_pointer_type{&v,id+1};
+        auto p1 = cuda_pointer_type{&v};
+        auto p2 = cuda_pointer_type{&v};
         REQUIRE(p == p);
         REQUIRE(p1 == p1);
         REQUIRE(p1 == p2);
         REQUIRE(p1 != p);
-        REQUIRE(p1 != p3);
     }
     SECTION("add_offset"){
         value_type a[10];
@@ -142,8 +127,8 @@ TEST_CASE("test_copy","[test_cuda_memory]"){
         }
     }
     SECTION("copy_device_device_exception"){
-        auto p_first = cuda_pointer<value_type>{nullptr,0};
-        auto p_last = cuda_pointer<value_type>{nullptr,1};
+        auto p_first = cuda_pointer<value_type>{nullptr};
+        auto p_last = cuda_pointer<value_type>{nullptr};
         REQUIRE_THROWS_AS(copy(p_first, p_last, dev_ptr),cuda_experimental::cuda_exception);
     }
     allocator.deallocate(dev_ptr,n);
