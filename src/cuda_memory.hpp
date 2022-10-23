@@ -86,7 +86,7 @@ public:
         managed_device_id{managed_device_id_}
     {}
     pointer allocate(size_type n){
-        return allocator_helper([this](size_type n){void* p; cuda_error_check(cudaMalloc(&p,n*sizeof(T))); return pointer{reinterpret_cast<T*>(p),managed_device_id};}, n);
+        return allocator_helper([this](size_type n){void* p; cuda_error_check(cudaMalloc(&p,n*sizeof(T))); return pointer{static_cast<T*>(p),managed_device_id};}, n);
     }
     void deallocate(pointer p, size_type){
         return allocator_helper([this](pointer p){cuda_error_check(cudaFree(ptr_to_void(p)));}, p);
@@ -106,6 +106,58 @@ private:
 
     device_id_type managed_device_id;
 };
+
+/*
+* host memory allocator for cuda unified addressing
+* allocate host memory or use already allocated host memory
+*/
+template<typename T>
+class cuda_mapping_allocator
+{
+public:
+    using difference_type = std::ptrdiff_t;
+    using size_type = difference_type;
+    using value_type = T;
+    using pointer = cuda_pointer<T>;
+    using const_pointer = cuda_pointer<const T>;
+    using propagate_on_container_copy_assignment = std::true_type;
+    using propagate_on_container_move_assignment = std::true_type;
+
+    cuda_mapping_allocator(const cuda_mapping_allocator&) = default;
+    cuda_mapping_allocator(cuda_mapping_allocator&&) = default;
+    cuda_mapping_allocator& operator=(const cuda_mapping_allocator&) = default;
+    cuda_mapping_allocator& operator=(cuda_mapping_allocator&&) = default;
+    cuda_mapping_allocator(T* host_data_ = nullptr):
+        host_data{host_data_}
+    {}
+
+    pointer allocate(size_type n){
+        void* host_buffer;
+        if (host_data){
+            host_buffer = host_data;
+            //cudaHostRegisterDefault: On a system with unified virtual addressing, the memory will be both mapped and portable.
+            //On a system with no unified virtual addressing, the memory will be neither mapped nor portable.
+            cuda_error_check(cudaHostRegister(host_buffer,n*sizeof(T),cudaHostRegisterDefault));
+        }else{
+            host_buffer = make_host_locked_buffer(n).release();
+        }
+        void* p;
+        cuda_error_check(cudaHostGetDevicePointer(&p, host_buffer, 0));
+        return pointer{static_cast<T*>(p),cuda_get_device()};
+    }
+    void deallocate(pointer p, size_type){
+        if (host_data){
+            cuda_error_check(cudaHostUnregister(p.get()));
+        }else{
+            cuda_error_check(cudaFree(ptr_to_void(p)));
+        }
+    }
+    bool operator==(const cuda_mapping_allocator& other)const{return host_data == other.host_data;}
+private:
+    T* host_data;
+};
+
+
 
 template<typename T, typename SizeT>
 auto make_host_locked_buffer(const SizeT& n, unsigned int flags = cudaHostAllocDefault){
