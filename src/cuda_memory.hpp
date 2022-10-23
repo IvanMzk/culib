@@ -27,9 +27,10 @@ public:
     operator cuda_pointer<const T>()const{return cuda_pointer<const T>{ptr};}
     pointer get()const{return ptr;}
     auto device()const{
-        cudaPointerAttributes ptr_attributes;
-        cuda_error_check(cudaPointerGetAttributes(&ptr_attributes, ptr));
-        return ptr_attributes.device;
+        // cudaPointerAttributes ptr_attributes;
+        // cuda_error_check(cudaPointerGetAttributes(&ptr_attributes, ptr));
+        // return ptr_attributes.device;
+        return 0;
     }
 private:
     pointer ptr;
@@ -136,7 +137,7 @@ public:
             //On a system with no unified virtual addressing, the memory will be neither mapped nor portable.
             cuda_error_check(cudaHostRegister(host_buffer,n*sizeof(T),cudaHostRegisterDefault));
         }else{
-            host_buffer = make_host_locked_buffer(n).release();
+            host_buffer = make_host_locked_buffer<value_type>(n).release();
         }
         void* p;
         cuda_error_check(cudaHostGetDevicePointer(&p, host_buffer, 0));
@@ -144,17 +145,15 @@ public:
     }
     void deallocate(pointer p, size_type){
         if (host_data){
-            cuda_error_check(cudaHostUnregister(p.get()));
+            cuda_error_check(cudaHostUnregister(host_data));
         }else{
-            cuda_error_check(cudaFree(ptr_to_void(p)));
+            cuda_error_check(cudaFreeHost(ptr_to_void(p)));
         }
     }
     bool operator==(const cuda_mapping_allocator& other)const{return host_data == other.host_data;}
 private:
     T* host_data;
 };
-
-
 
 template<typename T, typename SizeT>
 auto make_host_locked_buffer(const SizeT& n, unsigned int flags = cudaHostAllocDefault){

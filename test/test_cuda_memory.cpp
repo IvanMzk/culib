@@ -127,9 +127,67 @@ TEST_CASE("test_copy","[test_cuda_memory]"){
         }
     }
     SECTION("copy_device_device_exception"){
-        auto p_first = cuda_pointer<value_type>{nullptr};
-        auto p_last = cuda_pointer<value_type>{nullptr};
-        REQUIRE_THROWS_AS(copy(p_first, p_last, dev_ptr),cuda_experimental::cuda_exception);
+        // auto p_first = cuda_pointer<value_type>{nullptr};
+        // auto p_last = cuda_pointer<value_type>{nullptr};
+        // REQUIRE_THROWS_AS(copy(p_first, p_last, dev_ptr),cuda_experimental::cuda_exception);
     }
     allocator.deallocate(dev_ptr,n);
+}
+
+TEST_CASE("test_cuda_pointer_attributes","[test_cuda_memory]"){
+    using value_type = float;
+    using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
+    using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
+    using cuda_experimental::cuda_pointer;
+    using cuda_experimental::copy;
+    using cuda_experimental::cuda_assert;
+    using cuda_experimental::make_host_buffer;
+
+// enum __device_builtin__ cudaMemoryType
+// {
+//     cudaMemoryTypeUnregistered = 0, /**< Unregistered memory */
+//     cudaMemoryTypeHost         = 1, /**< Host memory */
+//     cudaMemoryTypeDevice       = 2, /**< Device memory */
+//     cudaMemoryTypeManaged      = 3  /**< Managed memory */
+// };
+
+
+
+    auto print_ptr_attr = [](const auto& p){
+        cudaPointerAttributes attr;
+        cuda_error_check(cudaPointerGetAttributes(&attr, p.get()));
+        std::cout<<std::endl<<"device"<<attr.device;
+        std::cout<<std::endl<<"device_ptr"<<attr.devicePointer;
+        std::cout<<std::endl<<"host_ptr"<<attr.hostPointer;
+        switch (attr.type){
+            case cudaMemoryType::cudaMemoryTypeUnregistered:
+                std::cout<<std::endl<<"Unregistered memory"<<attr.type;
+                break;
+            case cudaMemoryType::cudaMemoryTypeHost:
+                std::cout<<std::endl<<"Host memory"<<attr.type;
+                break;
+            case cudaMemoryType::cudaMemoryTypeDevice:
+                std::cout<<std::endl<<"Device memory"<<attr.type;
+                break;
+        }
+    };
+
+    int n{100};
+    int offset{99};
+    auto mapping_alloc = cuda_mapping_allocator_type{};
+    auto p = mapping_alloc.allocate(n);
+    print_ptr_attr(p+offset);
+
+    auto buffer = make_host_buffer<value_type>(n);
+    auto mapping_alloc_registered = cuda_mapping_allocator_type{buffer.get()};
+    auto p_registered = mapping_alloc_registered.allocate(n);
+    print_ptr_attr(p_registered+offset);
+
+    auto dev_alloc = cuda_allocator_type{};
+    auto p_dev = dev_alloc.allocate(n);
+    print_ptr_attr(p_dev+offset);
+
+    mapping_alloc.deallocate(p,n);
+    mapping_alloc_registered.deallocate(p_registered,n);
+    dev_alloc.deallocate(p_dev,n);
 }
