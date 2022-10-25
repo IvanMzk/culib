@@ -109,11 +109,11 @@ class device_pointer : public basic_pointer<T,device_pointer>
         {}
         operator T()const{
             std::remove_const_t<T> buffer;
-            copy(data, data+sizeof(T), &buffer);
+            copy(data, data+1, &buffer);
             return buffer;
         }
         T operator=(const T& v){
-            copy(&v, &v+sizeof(T), data);
+            copy(&v, &v+1, data);
             return v;
         }
     };

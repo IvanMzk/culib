@@ -255,21 +255,41 @@ TEST_CASE("test_device_pointer","[test_cuda_memory]"){
         cr = false;
     }
 
+    auto print_ptr = [](const auto& p){std::cout<<std::endl<<p.get();};
+
     using value_type = float;
     using allocator_type = cuda_experimental::device_allocator<value_type>;
 
     allocator_type allocator{};
-    std::vector<value_type> v{1,2,3,4,5,6,7,8,9,10};
+    std::vector<value_type> v{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
     auto n = v.size();
     auto ptr_dev = allocator.allocate(n);
-    auto ptr_const_dev = ptr_to_const(ptr_dev);
     copy(v.begin(), v.end(), ptr_dev);
-
-
-    auto r = *ptr_dev;
-    REQUIRE(r == 1);
-    auto val = *ptr_const_dev;
-    REQUIRE(val == 1);
+    auto it = ptr_dev;
+    auto end = ptr_dev+n;
+    SECTION("read_dev_reference"){
+        std::vector<value_type> v_dev_copy{};
+        std::vector<value_type> v_const_dev_copy{};
+        for(;it!=end; ++it){
+            auto const_it = ptr_to_const(it);
+            v_dev_copy.push_back(*it);
+            v_const_dev_copy.push_back(*const_it);
+        }
+        REQUIRE(std::equal(v.begin(),v.end(),v_dev_copy.begin()));
+        REQUIRE(std::equal(v.begin(),v.end(),v_const_dev_copy.begin()));
+    }
+    SECTION("write_dev_reference"){
+        std::vector<value_type> v_expected_result{};
+        std::size_t i{0};
+        for(;it!=end; ++it, ++i){
+            auto v = i%2;
+            *it = v;
+            v_expected_result.push_back(v);
+        }
+        std::vector<value_type> v_dev_copy(n);
+        copy(ptr_dev, ptr_dev+n, v_dev_copy.begin());
+        REQUIRE(std::equal(v_expected_result.begin(),v_expected_result.end(),v_dev_copy.begin()));
+    }
 
     allocator.deallocate(ptr_dev, n);
 }
