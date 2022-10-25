@@ -3,41 +3,41 @@
 #include "cuda_memory.hpp"
 
 
-TEMPLATE_TEST_CASE("test_cuda_pointer","[test_cuda_memory]",
-    cuda_experimental::cuda_pointer<float>,
-    cuda_experimental::cuda_pointer<const float>
+TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
+    cuda_experimental::basic_pointer<float>,
+    cuda_experimental::basic_pointer<const float>
 )
 {
     using value_type = float;
-    using cuda_pointer_type = TestType;
+    using basic_pointer_type = TestType;
 
-    REQUIRE(std::is_trivially_copyable_v<cuda_pointer_type>);
+    REQUIRE(std::is_trivially_copyable_v<basic_pointer_type>);
     float v{};
-    auto p = cuda_pointer_type{};
+    auto p = basic_pointer_type{};
     REQUIRE(p.get() == nullptr);
     SECTION("from_pointer_construction"){
-        auto p = cuda_pointer_type{&v};
+        auto p = basic_pointer_type{&v};
         REQUIRE(p.get() == &v);
-        auto p1 = cuda_pointer_type{nullptr};
+        auto p1 = basic_pointer_type{nullptr};
         REQUIRE(p1.get() == nullptr);
     }
     SECTION("copy_construction"){
-        auto p = cuda_pointer_type{&v};
+        auto p = basic_pointer_type{&v};
         auto p1 = p;
         REQUIRE(p1.get() == p.get());
     }
     SECTION("copy_assignment"){
-        auto p = cuda_pointer_type{};
-        auto p1 = cuda_pointer_type{&v};
+        auto p = basic_pointer_type{};
+        auto p1 = basic_pointer_type{&v};
         p = p1;
         REQUIRE(p.get() == p1.get());
         p1 = nullptr;
         REQUIRE(p1.get() == nullptr);
     }
     SECTION("equality"){
-        auto p = cuda_pointer_type{};
-        auto p1 = cuda_pointer_type{&v};
-        auto p2 = cuda_pointer_type{&v};
+        auto p = basic_pointer_type{};
+        auto p1 = basic_pointer_type{&v};
+        auto p2 = basic_pointer_type{&v};
         REQUIRE(p == p);
         REQUIRE(p1 == p1);
         REQUIRE(p1 == p2);
@@ -45,14 +45,14 @@ TEMPLATE_TEST_CASE("test_cuda_pointer","[test_cuda_memory]",
     }
     SECTION("add_offset"){
         value_type a[10];
-        auto p = cuda_pointer_type{a};
-        REQUIRE(p+5 == cuda_pointer_type{a+5});
-        REQUIRE(5+p == cuda_pointer_type{a+5});
+        auto p = basic_pointer_type{a};
+        REQUIRE(p+5 == basic_pointer_type{a+5});
+        REQUIRE(5+p == basic_pointer_type{a+5});
     }
     SECTION("subtract_two_pointers"){
         value_type a[10];
-        auto begin = cuda_pointer_type{a};
-        auto end = cuda_pointer_type{a+10};
+        auto begin = basic_pointer_type{a};
+        auto end = basic_pointer_type{a+10};
         REQUIRE(end-begin == 10);
         REQUIRE(end-end == 0);
         REQUIRE(distance(begin,end) == 10);
@@ -61,8 +61,8 @@ TEMPLATE_TEST_CASE("test_cuda_pointer","[test_cuda_memory]",
     }
     SECTION("distance"){
         value_type a[10];
-        auto begin = cuda_pointer_type{a};
-        auto end = cuda_pointer_type{a+10};
+        auto begin = basic_pointer_type{a};
+        auto end = basic_pointer_type{a+10};
         REQUIRE(distance(begin,end) == 10);
         REQUIRE(distance(begin,begin) == 0);
         REQUIRE(distance(begin,begin+3) == 3);
@@ -73,13 +73,13 @@ TEMPLATE_TEST_CASE("test_cuda_pointer","[test_cuda_memory]",
 TEST_CASE("test_copy","[test_cuda_memory]"){
     using value_type = float;
     using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
-    using cuda_experimental::cuda_pointer;
+    using cuda_experimental::basic_pointer;
     using cuda_experimental::copy;
 
     auto allocator = cuda_allocator_type{};
     constexpr std::size_t n{100};
     auto dev_ptr = allocator.allocate(n);
-    auto const_dev_ptr = cuda_pointer<const value_type>{dev_ptr};
+    auto const_dev_ptr = basic_pointer<const value_type>{dev_ptr};
 
     SECTION("copy_host_device"){
         constexpr std::size_t a_len{10};
@@ -127,84 +127,81 @@ TEST_CASE("test_copy","[test_cuda_memory]"){
         }
     }
     SECTION("copy_device_device_exception"){
-        // auto p_first = cuda_pointer<value_type>{nullptr};
-        // auto p_last = cuda_pointer<value_type>{nullptr};
+        // auto p_first = basic_pointer<value_type>{nullptr};
+        // auto p_last = basic_pointer<value_type>{nullptr};
         // REQUIRE_THROWS_AS(copy(p_first, p_last, dev_ptr),cuda_experimental::cuda_exception);
     }
     allocator.deallocate(dev_ptr,n);
 }
 
-TEST_CASE("test_cuda_pointer_attributes","[test_cuda_memory]"){
-    using value_type = float;
-    using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
-    using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
-    using cuda_experimental::unified_memory_allocator;
-    using cuda_experimental::cuda_pointer;
-    using cuda_experimental::copy;
-    using cuda_experimental::cuda_assert;
-    using cuda_experimental::make_host_buffer;
+// TEST_CASE("test_pointer_attributes","[test_cuda_memory]"){
+//     using value_type = float;
+//     using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
+//     using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
+//     using cuda_experimental::unified_memory_allocator;
+//     using cuda_experimental::basic_pointer;
+//     using cuda_experimental::copy;
+//     using cuda_experimental::cuda_assert;
+//     using cuda_experimental::make_host_buffer;
 
-// enum __device_builtin__ cudaMemoryType
-// {
-//     cudaMemoryTypeUnregistered = 0, /**< Unregistered memory */
-//     cudaMemoryTypeHost         = 1, /**< Host memory */
-//     cudaMemoryTypeDevice       = 2, /**< Device memory */
-//     cudaMemoryTypeManaged      = 3  /**< Managed memory */
-// };
+// // enum __device_builtin__ cudaMemoryType
+// // {
+// //     cudaMemoryTypeUnregistered = 0, /**< Unregistered memory */
+// //     cudaMemoryTypeHost         = 1, /**< Host memory */
+// //     cudaMemoryTypeDevice       = 2, /**< Device memory */
+// //     cudaMemoryTypeManaged      = 3  /**< Managed memory */
+// // };
 
+//     auto print_ptr_attr = [](const auto& p){
+//         cudaPointerAttributes attr;
+//         cuda_error_check(cudaPointerGetAttributes(&attr, p));
+//         std::cout<<std::endl<<"device"<<attr.device;
+//         std::cout<<std::endl<<"device_ptr"<<attr.devicePointer;
+//         std::cout<<std::endl<<"host_ptr"<<attr.hostPointer;
+//         switch (attr.type){
+//             case cudaMemoryType::cudaMemoryTypeUnregistered:
+//                 std::cout<<std::endl<<"Unregistered memory"<<attr.type;
+//                 break;
+//             case cudaMemoryType::cudaMemoryTypeHost:
+//                 std::cout<<std::endl<<"Host memory"<<attr.type;
+//                 break;
+//             case cudaMemoryType::cudaMemoryTypeDevice:
+//                 std::cout<<std::endl<<"Device memory"<<attr.type;
+//                 break;
+//             case cudaMemoryType::cudaMemoryTypeManaged:
+//                 std::cout<<std::endl<<"Managed memory"<<attr.type;
+//                 break;
+//         }
+//     };
+//     auto print_cuda_ptr_attr = [&](const auto& p){
+//         print_ptr_attr(p.get());
+//     };
 
+//     int n{100};
+//     int offset{99};
+//     auto mapping_alloc = cuda_mapping_allocator_type{};
+//     auto p = mapping_alloc.allocate(n);
+//     print_cuda_ptr_attr(p+offset);
 
+//     auto buffer_to_register = make_host_buffer<value_type>(n);
+//     auto mapping_alloc_registered = cuda_mapping_allocator_type{buffer_to_register.get()};
+//     auto p_registered = mapping_alloc_registered.allocate(n);
+//     print_cuda_ptr_attr(p_registered+offset);
 
-    auto print_ptr_attr = [](const auto& p){
-        cudaPointerAttributes attr;
-        cuda_error_check(cudaPointerGetAttributes(&attr, p));
-        std::cout<<std::endl<<"device"<<attr.device;
-        std::cout<<std::endl<<"device_ptr"<<attr.devicePointer;
-        std::cout<<std::endl<<"host_ptr"<<attr.hostPointer;
-        switch (attr.type){
-            case cudaMemoryType::cudaMemoryTypeUnregistered:
-                std::cout<<std::endl<<"Unregistered memory"<<attr.type;
-                break;
-            case cudaMemoryType::cudaMemoryTypeHost:
-                std::cout<<std::endl<<"Host memory"<<attr.type;
-                break;
-            case cudaMemoryType::cudaMemoryTypeDevice:
-                std::cout<<std::endl<<"Device memory"<<attr.type;
-                break;
-            case cudaMemoryType::cudaMemoryTypeManaged:
-                std::cout<<std::endl<<"Managed memory"<<attr.type;
-                break;
-        }
-    };
-    auto print_cuda_ptr_attr = [&](const auto& p){
-        print_ptr_attr(p.get());
-    };
+//     auto dev_alloc = cuda_allocator_type{};
+//     auto p_dev = dev_alloc.allocate(n);
+//     print_cuda_ptr_attr(p_dev+offset);
 
-    int n{100};
-    int offset{99};
-    auto mapping_alloc = cuda_mapping_allocator_type{};
-    auto p = mapping_alloc.allocate(n);
-    print_cuda_ptr_attr(p+offset);
+//     auto buffer = make_host_buffer<value_type>(n);
+//     //print_ptr_attr(buffer.get()+offset);
 
-    auto buffer_to_register = make_host_buffer<value_type>(n);
-    auto mapping_alloc_registered = cuda_mapping_allocator_type{buffer_to_register.get()};
-    auto p_registered = mapping_alloc_registered.allocate(n);
-    print_cuda_ptr_attr(p_registered+offset);
+//     auto um_alloc = unified_memory_allocator<value_type>{};
+//     auto um_ptr = um_alloc.allocate(n);
+//     print_cuda_ptr_attr(um_ptr+offset);
 
-    auto dev_alloc = cuda_allocator_type{};
-    auto p_dev = dev_alloc.allocate(n);
-    print_cuda_ptr_attr(p_dev+offset);
+//     um_alloc.deallocate(um_ptr,n);
+//     mapping_alloc.deallocate(p,n);
+//     mapping_alloc_registered.deallocate(p_registered,n);
+//     dev_alloc.deallocate(p_dev,n);
 
-    auto buffer = make_host_buffer<value_type>(n);
-    //print_ptr_attr(buffer.get()+offset);
-
-    auto um_alloc = unified_memory_allocator<value_type>{};
-    auto um_ptr = um_alloc.allocate(n);
-    print_cuda_ptr_attr(um_ptr+offset);
-
-    um_alloc.deallocate(um_ptr,n);
-    mapping_alloc.deallocate(p,n);
-    mapping_alloc_registered.deallocate(p_registered,n);
-    dev_alloc.deallocate(p_dev,n);
-
-}
+// }
