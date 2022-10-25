@@ -28,6 +28,16 @@ public:
         --ptr;
         return to_derived();
     }
+    template<typename U>
+    derived_type& operator+=(const U& offset){
+        ptr+=offset;
+        return to_derived();
+    }
+    template<typename U>
+    derived_type& operator-=(const U& offset){
+        ptr-=offset;
+        return to_derived();
+    }
     operator bool()const{return static_cast<bool>(ptr);}
     operator D<const T>()const{return D<const T>{ptr};}
     pointer get()const{return ptr;}
@@ -91,7 +101,6 @@ auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(p)
 template<typename T>
 class device_pointer : public basic_pointer<T,device_pointer>
 {
-
     class device_data_reference{
         device_pointer data;
     public:
