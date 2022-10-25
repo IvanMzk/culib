@@ -157,6 +157,21 @@ TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
         auto cp = static_cast<test_pointer<const value_type>>(p);
         REQUIRE(p == cp);
     }
+    SECTION("operator++"){
+        value_type a[10];
+        auto p = pointer_type{a};
+        REQUIRE(++p == pointer_type{a+1});
+        REQUIRE(p++ == pointer_type{a+1});
+        REQUIRE(p == pointer_type{a+2});
+    }
+    SECTION("operator--"){
+        constexpr std::size_t n{10};
+        value_type a[n];
+        auto p = pointer_type{a+n};
+        REQUIRE(--p == pointer_type{a+n-1});
+        REQUIRE(p-- == pointer_type{a+n-1});
+        REQUIRE(p == pointer_type{a+n-2});
+    }
 }
 
 TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",

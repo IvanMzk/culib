@@ -18,7 +18,15 @@ public:
     basic_pointer& operator=(basic_pointer&&) = default;
     derived_type& operator=(std::nullptr_t){
         ptr = nullptr;
-        return static_cast<derived_type&>(*this);
+        return to_derived();
+    }
+    derived_type& operator++(){
+        ++ptr;
+        return to_derived();
+    }
+    derived_type& operator--(){
+        --ptr;
+        return to_derived();
     }
     operator bool()const{return static_cast<bool>(ptr);}
     operator D<const T>()const{return D<const T>{ptr};}
@@ -30,6 +38,7 @@ private:
     explicit basic_pointer(pointer ptr_ = nullptr):
         ptr{ptr_}
     {}
+    auto& to_derived(){return static_cast<derived_type&>(*this);}
     pointer ptr;
 };
 
@@ -41,6 +50,19 @@ class is_basic_pointer_t{
 public: using type = decltype(selector(std::declval<T>()));
 };
 template<typename T> constexpr bool is_basic_pointer_v = is_basic_pointer_t<T>::type();
+
+template<typename T, template<typename> typename D>
+auto operator++(basic_pointer<T,D>& lhs, int){
+    D<T> res{static_cast<D<T>&>(lhs)};
+    ++lhs;
+    return res;
+}
+template<typename T, template<typename> typename D>
+auto operator--(basic_pointer<T,D>& lhs, int){
+    D<T> res{static_cast<D<T>&>(lhs)};
+    --lhs;
+    return res;
+}
 
 template<typename T, template<typename> typename D, typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0>
 auto operator+(const basic_pointer<T,D>& lhs, const U& rhs){return D<T>{lhs.get() + rhs};}
