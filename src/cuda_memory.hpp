@@ -258,19 +258,8 @@ void copy(device_pointer<T> first, device_pointer<T> last, It d_first){
 //copy from device to device, src and dst must be allocated on same device
 template<typename T>
 void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
-    // if (first.device() != last.device()){
-    //     throw cuda_exception("copy device-device invalid source range");
-    // }
     auto n = distance(first,last);
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
-
-    // if (first.device() == d_first.device()){
-    //     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
-    // }else{
-    //     auto buffer = make_host_locked_buffer<std::remove_const_t<T>>(n,cudaHostAllocWriteCombined);
-    //     copy(first,last,buffer.get());
-    //     copy(buffer.get(),buffer.get()+n,d_first);
-    // }
 }
 
 }   //end of namespace cuda_experimental
