@@ -16,7 +16,6 @@ public:
     {}
 };
 
-
 template<typename D>
 class A
 {
@@ -220,6 +219,44 @@ TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
     }
     allocator.deallocate(dev_ptr,n);
 }
+
+TEST_CASE("test_device_pointer","[test_cuda_memory]"){
+
+    SECTION("vector_of_bools"){
+        auto v = std::vector<bool>{1,0,0,0,1};
+        auto it = v.begin();
+
+        bool ee = *it;
+        auto r = *it;
+
+        *it = false;
+        r = true;
+        auto& cv = v;
+        auto cit = cv.cbegin();
+        //*cit = true;
+        auto cr = *cit;
+        cr = false;
+    }
+
+    using value_type = float;
+    using allocator_type = cuda_experimental::device_allocator<value_type>;
+
+    allocator_type allocator{};
+    std::vector<value_type> v{1,2,3,4,5,6,7,8,9,10};
+    auto n = v.size();
+    auto ptr_dev = allocator.allocate(n);
+    auto ptr_const_dev = ptr_to_const(ptr_dev);
+    copy(v.begin(), v.end(), ptr_dev);
+
+
+    auto r = *ptr_dev;
+    REQUIRE(r == 1);
+    auto val = *ptr_const_dev;
+    REQUIRE(val == 1);
+
+    allocator.deallocate(ptr_dev, n);
+}
+
 
 // TEST_CASE("test_pointer_attributes","[test_cuda_memory]"){
 //     using value_type = float;
