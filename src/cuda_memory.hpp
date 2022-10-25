@@ -4,6 +4,7 @@
 #include <iterator>
 #include <memory>
 #include "cuda_helpers.hpp"
+#include "thrust\device_vector.h"
 
 namespace cuda_experimental{
 
@@ -26,12 +27,6 @@ public:
     operator bool()const{return static_cast<bool>(ptr);}
     operator cuda_pointer<const T>()const{return cuda_pointer<const T>{ptr};}
     pointer get()const{return ptr;}
-    auto device()const{
-        // cudaPointerAttributes ptr_attributes;
-        // cuda_error_check(cudaPointerGetAttributes(&ptr_attributes, ptr));
-        // return ptr_attributes.device;
-        return 0;
-    }
 private:
     pointer ptr;
 };
@@ -103,6 +98,27 @@ private:
     }
 
     device_id_type managed_device_id;
+};
+
+template<typename T>
+class unified_memory_allocator
+{
+public:
+    using difference_type = std::ptrdiff_t;
+    using size_type = difference_type;
+    using value_type = T;
+    using pointer = cuda_pointer<T>;
+    using const_pointer = cuda_pointer<const T>;
+
+    pointer allocate(size_type n){
+        void* p;
+        cuda_error_check(cudaMallocManaged(&p,n*sizeof(T)));
+        return pointer{static_cast<T*>(p)};
+    }
+    void deallocate(pointer p, size_type){
+        cuda_error_check(cudaFree(ptr_to_void(p)));
+    }
+    bool operator==(const unified_memory_allocator& other)const{return true;}
 };
 
 /*
@@ -201,17 +217,19 @@ void copy(cuda_pointer<T> first, cuda_pointer<T> last, It d_first){
 //copy from device to device, src and dst must be allocated on same device
 template<typename T>
 void copy(cuda_pointer<T> first, cuda_pointer<T> last, cuda_pointer<std::remove_const_t<T>> d_first){
-    if (first.device() != last.device()){
-        throw cuda_exception("copy device-device invalid source range");
-    }
+    // if (first.device() != last.device()){
+    //     throw cuda_exception("copy device-device invalid source range");
+    // }
     auto n = distance(first,last);
-    if (first.device() == d_first.device()){
-        cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
-    }else{
-        auto buffer = make_host_locked_buffer<std::remove_const_t<T>>(n,cudaHostAllocWriteCombined);
-        copy(first,last,buffer.get());
-        copy(buffer.get(),buffer.get()+n,d_first);
-    }
+    cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
+
+    // if (first.device() == d_first.device()){
+    //     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
+    // }else{
+    //     auto buffer = make_host_locked_buffer<std::remove_const_t<T>>(n,cudaHostAllocWriteCombined);
+    //     copy(first,last,buffer.get());
+    //     copy(buffer.get(),buffer.get()+n,d_first);
+    // }
 }
 
 }   //end of namespace cuda_experimental

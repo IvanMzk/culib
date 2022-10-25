@@ -79,6 +79,7 @@
         "xutility": "cpp",
         "__nullptr": "cpp",
         "resumable": "cpp",
-        "__node_handle": "cpp"
+        "__node_handle": "cpp",
+        "memory_resource": "cpp"
     }
 }
