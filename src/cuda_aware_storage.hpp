@@ -32,10 +32,6 @@ public:
     using value_type = typename allocator_type::value_type;
     using pointer = typename allocator_type::pointer;
     using const_pointer = typename allocator_type::const_pointer;
-    static_assert(std::is_trivially_copyable_v<value_type>);
-    static_assert(!std::allocator_traits<allocator_type>::is_always_equal());
-    static_assert(std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
-    static_assert(std::allocator_traits<allocator_type>::propagate_on_container_move_assignment());
 
     ~cuda_aware_storage(){deallocate();}
     cuda_aware_storage(const allocator_type& alloc = allocator_type()):
@@ -74,9 +70,7 @@ public:
         size_{n},
         begin_{allocate(n)}
     {
-        auto buffer = make_host_buffer<value_type>(n);
-        std::uninitialized_fill_n(buffer.get(),n,v);
-        copy(buffer.get(), buffer.get()+n, begin_);
+        fill(begin_, begin_+size_, v);
     }
     //construct storage from host iterators range
     template<typename It, std::enable_if_t<detail::is_iterator<It>,int> =0 >
@@ -95,7 +89,7 @@ public:
     {
         copy(init_data.begin(),init_data.end(),begin_);
     }
-    //construct storage from device iterators range, src and dst must be allocated on same device
+    //construct storage from cuda aware pointers range
     cuda_aware_storage(const_pointer first, const_pointer last, const allocator_type& alloc = allocator_type()):
         allocator_{alloc},
         size_{distance(first,last)},
@@ -105,11 +99,11 @@ public:
     }
 
     auto data(){return begin_;}
-    auto data()const{return  const_pointer(begin_);}
-    auto device_begin(){return begin_;}
-    auto device_end(){return  begin_ + size_;}
-    auto device_begin()const{return const_pointer{begin_};}
-    auto device_end()const{return  const_pointer{begin_ + size_};}
+    auto data()const{return  static_cast<const_pointer>(begin_);}
+    auto begin(){return begin_;}
+    auto end(){return  begin_ + size_;}
+    auto begin()const{return static_cast<const_pointer>(begin_);}
+    auto end()const{return  static_cast<const_pointer>(begin_+size_);}
     auto size()const{return size_;}
     auto empty()const{return !static_cast<bool>(begin_);}
     auto clone()const{return cuda_aware_storage{*this};}
