@@ -278,12 +278,11 @@ TEST_CASE("test_device_pointer","[test_cuda_memory]"){
             REQUIRE(std::equal(v.begin(),v.end(),v_const_dev_copy.begin()));
         }
         SECTION("write_dev_reference"){
-            std::vector<value_type> v_expected_result{};
-            std::size_t i{0};
-            for(;it!=end; ++it, ++i){
-                auto v = i%2;
+            std::vector<value_type> v_expected_result{2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40};
+            std::vector<value_type> v_expected_result_{};
+            for(;it!=end; ++it){
+                auto v = *it*2;
                 *it = v;
-                v_expected_result.push_back(v);
             }
             std::vector<value_type> v_dev_copy(n);
             copy(ptr_dev, ptr_dev+n, v_dev_copy.begin());
@@ -314,7 +313,25 @@ TEST_CASE("test_device_pointer","[test_cuda_memory]"){
             REQUIRE(std::equal(v_expected_result.begin(),v_expected_result.end(),v_dev_copy.begin()));
         }
     }
+    SECTION("device_pointer_iteration"){
+        auto begin = ptr_dev;
+        auto end = ptr_dev+n;
+        SECTION("read"){
+            auto cbegin = ptr_to_const(begin);
+            auto cend = ptr_to_const(end);
+            REQUIRE(std::equal(begin, end, v.begin()));
+            REQUIRE(std::equal(cbegin, cend, v.begin()));
+        }
+        SECTION("write"){
+            auto transformed_begin = allocator.allocate(n);
+            auto transformator = [](const auto& v){return v+1;};
+            std::vector<value_type> v_transformed{2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21};
+            std::transform(begin,end,transformed_begin,transformator);
 
+            REQUIRE(std::equal(v_transformed.begin(),v_transformed.end(), transformed_begin));
+            allocator.deallocate(transformed_begin,n);
+        }
+    }
 
     allocator.deallocate(ptr_dev, n);
 }
