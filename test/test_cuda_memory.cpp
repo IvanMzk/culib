@@ -252,6 +252,30 @@ TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
     allocator.deallocate(dev_ptr,n);
 }
 
+TEMPLATE_TEST_CASE("test_fill","[test_cuda_memory]",
+    cuda_experimental::device_allocator<float>
+)
+{
+    using value_type = float;
+    using cuda_experimental::fill;
+    using allocator_type = TestType;
+    using pointer_type = typename allocator_type::pointer;
+    using const_pointer_type = typename allocator_type::const_pointer;
+
+    auto allocator = allocator_type{};
+    constexpr std::size_t n{100};
+    auto dev_ptr = allocator.allocate(n);
+    value_type v{11};
+    fill(dev_ptr, dev_ptr+n, v);
+    std::vector<value_type> dev_copy(n);
+    copy(dev_ptr, dev_ptr+n, dev_copy.begin());
+    std::vector<value_type> expected(n,v);
+    REQUIRE(dev_copy == expected);
+    allocator.deallocate(dev_ptr,n);
+}
+
+
+
 TEST_CASE("test_device_pointer","[test_cuda_memory]"){
 
     using value_type = float;

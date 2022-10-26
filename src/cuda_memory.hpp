@@ -155,11 +155,11 @@ template<typename T>
 class device_allocator
 {
 public:
-    using difference_type = std::ptrdiff_t;
-    using size_type = difference_type;
     using value_type = T;
     using pointer = device_pointer<T>;
     using const_pointer = device_pointer<const T>;
+    using difference_type = typename pointer::difference_type;
+    using size_type = difference_type;
 
     pointer allocate(size_type n){
         void* p;
@@ -334,6 +334,15 @@ template<typename T>
 void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
     auto n = distance(first,last);
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
+}
+
+//fill device memory in range first last with v
+template<typename T>
+void fill(device_pointer<T> first, device_pointer<T> last, const T& v){
+    auto n = distance(first,last);
+    auto buffer = make_host_locked_buffer<T>(n, cudaHostAllocWriteCombined);
+    std::uninitialized_fill_n(buffer.get(),n,v);
+    copy(buffer.get(), buffer.get()+n, first);
 }
 
 }   //end of namespace cuda_experimental
