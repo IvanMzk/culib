@@ -14,6 +14,8 @@ class basic_pointer{
 public:
     using value_type = T;
     using pointer = T*;
+    using difference_type = std::ptrdiff_t;
+
     basic_pointer& operator=(const basic_pointer&) = default;
     basic_pointer& operator=(basic_pointer&&) = default;
     derived_type& operator=(std::nullptr_t){
@@ -82,11 +84,20 @@ template<typename T, template<typename> typename D, typename U, std::enable_if_t
 auto operator-(const basic_pointer<T,D>& lhs, const U& rhs){return lhs+-rhs;}
 
 template<typename T, template<typename> typename D>
-auto operator==(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return lhs.get() == rhs.get();}
+auto operator-(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return lhs.get() - rhs.get();}
+template<typename T, template<typename> typename D>
+auto operator==(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return lhs - rhs == typename basic_pointer<T,D>::difference_type(0);}
 template<typename T, template<typename> typename D>
 auto operator!=(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return !(lhs == rhs);}
 template<typename T, template<typename> typename D>
-auto operator-(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return lhs.get() - rhs.get();}
+auto operator>(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return lhs - rhs > typename basic_pointer<T,D>::difference_type(0);}
+template<typename T, template<typename> typename D>
+auto operator<(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return rhs - lhs > typename basic_pointer<T,D>::difference_type(0);}
+template<typename T, template<typename> typename D>
+auto operator>=(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return !(lhs < rhs);}
+template<typename T, template<typename> typename D>
+auto operator<=(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return !(lhs > rhs);}
+
 template<typename T, template<typename> typename D>
 auto distance(const basic_pointer<T,D>& begin, const basic_pointer<T,D>& end){return end-begin;}
 template<typename T, template<typename> typename D>

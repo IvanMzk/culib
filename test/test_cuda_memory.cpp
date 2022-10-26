@@ -174,6 +174,21 @@ TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
         REQUIRE(p == pointer_type{a+n-2});
         REQUIRE((p-=3) == pointer_type{a+n-5});
     }
+    SECTION("comparisons"){
+        constexpr std::size_t n{10};
+        value_type a[n];
+        auto p = pointer_type{a};
+        REQUIRE(p > pointer_type{});
+        REQUIRE(pointer_type{} < p);
+        REQUIRE(pointer_type{a+1} > p);
+        REQUIRE(p < pointer_type{a+1});
+        REQUIRE(p <= p);
+        REQUIRE(p >= p);
+        REQUIRE(pointer_type{} >= pointer_type{});
+        REQUIRE(pointer_type{} <= pointer_type{});
+        REQUIRE(pointer_type{a+1} >= p);
+        REQUIRE(p <= pointer_type{a+1});
+    }
 }
 
 TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
