@@ -10,7 +10,6 @@ namespace cuda_experimental{
 template<typename T, template<typename> typename D>
 class basic_pointer{
     using derived_type = D<T>;
-    static_assert(std::is_trivially_copyable_v<T>);
 public:
     using value_type = T;
     using pointer = T*;
@@ -112,6 +111,7 @@ auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(p)
 template<typename T>
 class device_pointer : public basic_pointer<T,device_pointer>
 {
+    static_assert(std::is_trivially_copyable_v<T>);
     class device_data_reference{
         device_pointer data;
     public:
@@ -129,21 +129,26 @@ class device_pointer : public basic_pointer<T,device_pointer>
         }
     };
 
-    auto deref_helper(std::true_type){
+    auto deref_helper(std::true_type)const{
         return static_cast<T>(device_data_reference{*this});
     }
-    auto deref_helper(std::false_type){
+    auto deref_helper(std::false_type)const{
         return device_data_reference{*this};
     }
 
 public:
+    using iterator_category = std::random_access_iterator_tag;
+    using typename basic_pointer::difference_type;
     using typename basic_pointer::value_type;
     using typename basic_pointer::pointer;
+    using reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
+    using const_reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
     device_pointer(pointer p= nullptr):
         basic_pointer{p}
     {}
     using basic_pointer::operator=;
-    auto operator*(){return deref_helper(std::is_const<T>::type{});}
+    auto operator*()const{return deref_helper(std::is_const<T>::type{});}
+    auto operator[](difference_type i)const{return *(*this+i);}
 };
 
 

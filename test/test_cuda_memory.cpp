@@ -254,24 +254,6 @@ TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
 
 TEST_CASE("test_device_pointer","[test_cuda_memory]"){
 
-    SECTION("vector_of_bools"){
-        auto v = std::vector<bool>{1,0,0,0,1};
-        auto it = v.begin();
-
-        bool ee = *it;
-        auto r = *it;
-
-        *it = false;
-        r = true;
-        auto& cv = v;
-        auto cit = cv.cbegin();
-        //*cit = true;
-        auto cr = *cit;
-        cr = false;
-    }
-
-    auto print_ptr = [](const auto& p){std::cout<<std::endl<<p.get();};
-
     using value_type = float;
     using allocator_type = cuda_experimental::device_allocator<value_type>;
 
@@ -280,31 +262,59 @@ TEST_CASE("test_device_pointer","[test_cuda_memory]"){
     auto n = v.size();
     auto ptr_dev = allocator.allocate(n);
     copy(v.begin(), v.end(), ptr_dev);
-    auto it = ptr_dev;
-    auto end = ptr_dev+n;
-    SECTION("read_dev_reference"){
-        std::vector<value_type> v_dev_copy{};
-        std::vector<value_type> v_const_dev_copy{};
-        for(;it!=end; ++it){
-            auto const_it = ptr_to_const(it);
-            v_dev_copy.push_back(*it);
-            v_const_dev_copy.push_back(*const_it);
+
+    SECTION("device_pointer_dereference"){
+        auto it = ptr_dev;
+        auto end = ptr_dev+n;
+        auto const_it = ptr_to_const(it);
+        SECTION("read_dev_reference"){
+            std::vector<value_type> v_dev_copy{};
+            std::vector<value_type> v_const_dev_copy{};
+            for(;it!=end; ++it, ++const_it){
+                v_dev_copy.push_back(*it);
+                v_const_dev_copy.push_back(*const_it);
+            }
+            REQUIRE(std::equal(v.begin(),v.end(),v_dev_copy.begin()));
+            REQUIRE(std::equal(v.begin(),v.end(),v_const_dev_copy.begin()));
         }
-        REQUIRE(std::equal(v.begin(),v.end(),v_dev_copy.begin()));
-        REQUIRE(std::equal(v.begin(),v.end(),v_const_dev_copy.begin()));
-    }
-    SECTION("write_dev_reference"){
-        std::vector<value_type> v_expected_result{};
-        std::size_t i{0};
-        for(;it!=end; ++it, ++i){
-            auto v = i%2;
-            *it = v;
-            v_expected_result.push_back(v);
+        SECTION("write_dev_reference"){
+            std::vector<value_type> v_expected_result{};
+            std::size_t i{0};
+            for(;it!=end; ++it, ++i){
+                auto v = i%2;
+                *it = v;
+                v_expected_result.push_back(v);
+            }
+            std::vector<value_type> v_dev_copy(n);
+            copy(ptr_dev, ptr_dev+n, v_dev_copy.begin());
+            REQUIRE(std::equal(v_expected_result.begin(),v_expected_result.end(),v_dev_copy.begin()));
         }
-        std::vector<value_type> v_dev_copy(n);
-        copy(ptr_dev, ptr_dev+n, v_dev_copy.begin());
-        REQUIRE(std::equal(v_expected_result.begin(),v_expected_result.end(),v_dev_copy.begin()));
     }
+    SECTION("device_pointer_subscription"){
+        SECTION("read_dev_reference"){
+            std::vector<value_type> v_dev_copy{};
+            std::vector<value_type> v_const_dev_copy{};
+            auto ptr_const_dev = ptr_to_const(ptr_dev);
+            for(std::size_t i{0};i!=n; ++i){
+                v_dev_copy.push_back(ptr_dev[i]);
+                v_const_dev_copy.push_back(ptr_const_dev[i]);
+            }
+            REQUIRE(std::equal(v.begin(),v.end(),v_dev_copy.begin()));
+            REQUIRE(std::equal(v.begin(),v.end(),v_const_dev_copy.begin()));
+        }
+        SECTION("write_dev_reference"){
+            std::vector<value_type> v_expected_result{};
+            for(std::size_t i{0}; i!=n; ++i){
+                auto v = i%2;
+                ptr_dev[i] = v;
+                v_expected_result.push_back(v);
+            }
+            std::vector<value_type> v_dev_copy(n);
+            copy(ptr_dev, ptr_dev+n, v_dev_copy.begin());
+            REQUIRE(std::equal(v_expected_result.begin(),v_expected_result.end(),v_dev_copy.begin()));
+        }
+    }
+
 
     allocator.deallocate(ptr_dev, n);
 }
