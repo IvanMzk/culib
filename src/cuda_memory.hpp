@@ -151,7 +151,6 @@ public:
     auto operator[](difference_type i)const{return *(*this+i);}
 };
 
-
 template<typename T>
 class device_allocator
 {
