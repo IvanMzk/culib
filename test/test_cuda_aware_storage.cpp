@@ -18,7 +18,6 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_default_constructor","[test_cuda_awa
     (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
-    using value_type = float;
     using cuda_experimental::distance;
     using storage_type = TestType;
     auto cuda_storage = storage_type();
@@ -31,7 +30,6 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_n_constructor","[test_cuda_aware_sto
     (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
-    using value_type = float;
     using cuda_experimental::distance;
     using storage_type = TestType;
 
@@ -54,9 +52,9 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_n_value_constructor","[test_cuda_awa
     (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
-    using value_type = float;
-    using cuda_experimental::distance;
     using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
+    using cuda_experimental::distance;
     value_type v{11.0f};
     SECTION("non_zero_size"){
         auto n = 100;
@@ -80,8 +78,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_host_range_constructor","[test_cuda_
     (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
-    using value_type = float;
     using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
 
     SECTION("pointers_range"){
         value_type host_data[]{1,2,3,4,5,6,7,8,9,10};
@@ -118,25 +116,41 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_init_list_constructor","[test_cuda_a
     (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
-    using value_type = float;
     using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
     auto cuda_storage = storage_type({1,2,3,4,5,6,7,8,9,10});
     REQUIRE(cuda_storage.size() == 10);
     REQUIRE(!cuda_storage.empty());
-    REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), std::initializer_list<float>{1,2,3,4,5,6,7,8,9,10}.begin()));
+    REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), std::initializer_list<value_type>{1,2,3,4,5,6,7,8,9,10}.begin()));
 }
 
 TEMPLATE_TEST_CASE("test_cuda_aware_storage_free","[test_cuda_aware_storage]",
     (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
-    using value_type = float;
     using storage_type = TestType;
-
     auto cuda_storage = storage_type({1,2,3,4,5,6,7,8,9,10});
     cuda_storage.free();
     REQUIRE(cuda_storage.size() == 0);
     REQUIRE(cuda_storage.empty());
+}
+
+TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_constructor","[test_cuda_aware_storage]",
+    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+)
+{
+    using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
+
+    auto storage_size = 100;
+    auto cuda_storage = storage_type(storage_size, value_type{1.0f});
+    auto copy = cuda_storage.clone();
+    REQUIRE(copy.size() == storage_size);
+    REQUIRE(cuda_storage.size() == storage_size);
+    REQUIRE(!copy.empty());
+    REQUIRE(!cuda_storage.empty());
+    REQUIRE(copy.data() != cuda_storage.data());
+    REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), copy.begin()));
 }
 
 // TEST_CASE("test_cuda_aware_storage_device_range_constructor","[test_cuda_aware_storage]"){
@@ -156,19 +170,7 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_free","[test_cuda_aware_storage]",
 //     }
 // }
 
-// TEST_CASE("test_cuda_aware_storage_copy_constructor","[test_cuda_aware_storage]"){
-//     using value_type = float;
-//     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
 
-//     auto storage_size = 100;
-//     auto cuda_storage = storage_type(storage_size, value_type{1.0f});
-//     auto copy = cuda_storage.clone();
-//     REQUIRE(copy.size() == storage_size);
-//     REQUIRE(cuda_storage.size() == storage_size);
-//     REQUIRE(!copy.empty());
-//     REQUIRE(!cuda_storage.empty());
-//     REQUIRE(copy.data() != cuda_storage.data());
-// }
 
 // TEST_CASE("test_cuda_aware_storage_move_constructor","[test_cuda_aware_storage]"){
 //     using value_type = float;

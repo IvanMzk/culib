@@ -13,14 +13,14 @@ namespace detail{
 }   //end of namespace detail
 
 /*
-* allocator must have semantic:
-* Alloc a{};
-* a allocate on device active at the moment of a constructing
-* Alloc a{device_id};
-* a allocate on device with device_id
-* Alloc a1{a};
-* Alloc a2{std::move(a)};
-* a1, a2 must allocate on same device as a, that is allocator must have state
+* cuda_aware_storage manages memory block
+* cuda_aware_storage use cuda_aware_allocator to allocate memory
+* memory block may reside on device , on host or be UM memory block, it depends on allocator type
+* allocation is made with respect to current active device of calling thread, allocator must gurantee such allocation semantic
+* to construct or copy storage that reside on specific device user must use cuda api to set device
+* move operations are guaranteed allocation free
+* iterator and pointer returned by data() may not be dereferenceable on device, it depends on allocator
+* iterator is guaranteed dereferenceable on host, but not efficient for device memory
 */
 template<typename T, typename Alloc = device_allocator<T>>
 class cuda_aware_storage
@@ -34,6 +34,7 @@ public:
     using const_pointer = typename allocator_type::const_pointer;
 
     ~cuda_aware_storage(){deallocate();}
+    //default constructor, no allocation take place
     cuda_aware_storage(const allocator_type& alloc = allocator_type()):
         allocator_{alloc},
         size_{0},
@@ -89,7 +90,7 @@ public:
     {
         copy(init_data.begin(),init_data.end(),begin_);
     }
-    //construct storage from cuda aware pointers range
+    //construct storage from cuda aware pointers range, if storage allocates on device it use current active device of calling thread
     cuda_aware_storage(const_pointer first, const_pointer last, const allocator_type& alloc = allocator_type()):
         allocator_{alloc},
         size_{distance(first,last)},
@@ -111,14 +112,13 @@ public:
     auto get_allocator()const{return allocator_;}
 
 private:
-    //private copy constructor, use clone() to make copy
-    //make copy on device that is other on
+    //private copy constructor, use clone() to make copy, if storage allocates on device it use current active device of calling thread
     cuda_aware_storage(const cuda_aware_storage& other):
         allocator_{std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.get_allocator())},
         size_(other.size_),
         begin_(allocate(size_))
     {
-        copy(other.device_begin(),other.device_end(),begin_);
+        copy(other.begin(),other.end(),begin_);
     }
     //copy assign other allocator if allocator not equal
     void copy_assign(const cuda_aware_storage& other){
@@ -138,7 +138,7 @@ private:
             begin_ = new_buffer;
             allocator_ = other_allocator;
         }
-        copy(other.device_begin(),other.device_end(),begin_);
+        copy(other.begin(),other.end(),begin_);
     }
     //move assign other allocator
     void move_assign(cuda_aware_storage&& other){
