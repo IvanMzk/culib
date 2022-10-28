@@ -3,12 +3,11 @@
 #include "cuda_experimental.hpp"
 
 namespace test_cuda_experimental{
-
-
-
 }
 
-TEST_CASE("test_pointer_attributes","[test_cuda_memory]"){
+
+
+TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     using value_type = float;
     using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
     using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
@@ -96,5 +95,19 @@ TEST_CASE("test_pointer_attributes","[test_cuda_memory]"){
     mapping_alloc.deallocate(p,n);
     mapping_alloc_registered.deallocate(p_registered,n);
     dev_alloc.deallocate(p_dev,n);
+}
+
+TEST_CASE("test_peer_copy","[test_cuda_experimental]"){
+    using value_type = float;
+    using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
+    using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
+    using cuda_experimental::unified_memory_allocator;
+    using cuda_experimental::basic_pointer;
+    using cuda_experimental::copy;
+    using cuda_experimental::cuda_assert;
+    using cuda_experimental::is_cuda_success;
+    using cuda_experimental::make_host_buffer;
+
+
 
 }

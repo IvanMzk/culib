@@ -158,6 +158,10 @@ public:
     auto operator[](difference_type i)const{return *(*this+i);}
 };
 
+/*
+* allocate device memory on current active device
+* deallocate device memory on device it has been allocated
+*/
 template<typename T>
 class device_allocator
 {
@@ -199,6 +203,7 @@ void copy(const T* first, const T* last, device_pointer<T> d_first){
     auto n = std::distance(first,last);
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice));
 }
+
 template<typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_basic_pointer_v<It>,int> =0 >
 void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::value_type> d_first){
     static_assert(!std::is_pointer_v<It>);
@@ -207,12 +212,14 @@ void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::v
     std::uninitialized_copy_n(first,n,buffer.get());
     copy(buffer.get(),buffer.get()+n,d_first);
 }
+
 //copy from device to host
 template<typename T>
 void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
     auto n = distance(first,last);
     cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost));
 }
+
 template<typename T, typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_basic_pointer_v<It>,int> =0>
 void copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     static_assert(!std::is_pointer_v<It>);
@@ -222,6 +229,7 @@ void copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     copy(first,last,buffer.get());
     std::copy_n(buffer.get(),n,d_first);
 }
+
 //copy from device to device, src and dst must be allocated on same device
 template<typename T>
 void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
