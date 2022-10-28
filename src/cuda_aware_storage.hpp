@@ -40,9 +40,11 @@ public:
         size_{0},
         begin_{nullptr}
     {}
-    //reallocate if not equal sizes or not equal allocators, result is always on device that other is
+    //reallocate if not equal sizes or not equal allocators
     cuda_aware_storage& operator=(const cuda_aware_storage& other){
-        copy_assign(other);
+        if (this != &other){
+            copy_assign(other, typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
+        }
         return *this;
     }
     //no reallocation guarantee, result is always on device that other is
@@ -120,16 +122,24 @@ private:
     {
         copy(other.begin(),other.end(),begin_);
     }
-    //copy assign other allocator if allocator not equal
-    void copy_assign(const cuda_aware_storage& other){
+
+    //no copy assign other's allocator
+    void copy_assign(const cuda_aware_storage& other, std::false_type){
         auto other_size = other.size();
-        if (allocator_ ==  other.allocator_){
-            if (size()!=other_size){
-                auto new_buffer = allocate(other_size);
-                deallocate();
-                size_ = other_size;
-                begin_ = new_buffer;
-            }
+        if (size()!=other_size){
+            auto new_buffer = allocate(other_size);
+            deallocate();
+            size_ = other_size;
+            begin_ = new_buffer;
+        }
+        copy(other.begin(),other.end(),begin_);
+    }
+
+    //copy assign other's allocator if allocator not equal
+    void copy_assign(const cuda_aware_storage& other, std::true_type){
+        auto other_size = other.size();
+        if (allocator_ ==  other.allocator_ || std::allocator_traits<allocator_type>::is_always_equal()){
+            copy_assign(other, std::false_type{});
         }else{
             auto other_allocator = other.get_allocator();
             auto new_buffer = other_allocator.allocate(other_size);

@@ -153,6 +153,51 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_constructor","[test_cuda_aware_
     REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), copy.begin()));
 }
 
+TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_storage]",
+    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+)
+{
+    using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
+    static constexpr std::size_t n{100};
+    auto cuda_storage = storage_type(n,7);
+
+    SECTION("not_self_assignment_reallocation"){
+        auto copy_assigned_size = GENERATE(n-1, n+1);
+        auto copy_assigned = storage_type(copy_assigned_size,0);
+        auto initial_copy_assigned_data = copy_assigned.data();
+        copy_assigned = cuda_storage;
+        REQUIRE(copy_assigned.data() != initial_copy_assigned_data);
+        REQUIRE(copy_assigned.data() != cuda_storage.data());
+        REQUIRE(cuda_storage.size() == n);
+        REQUIRE(!cuda_storage.empty());
+        REQUIRE(copy_assigned.size() == n);
+        REQUIRE(!copy_assigned.empty());
+        REQUIRE(std::equal(copy_assigned.begin(), copy_assigned.end(), cuda_storage.begin()));
+    }
+    SECTION("not_self_assignment_no_reallocation"){
+        auto copy_assigned_size = GENERATE(n+0);
+        auto copy_assigned = storage_type(copy_assigned_size,0);
+        auto initial_copy_assigned_data = copy_assigned.data();
+        copy_assigned = cuda_storage;
+        REQUIRE(copy_assigned.data() == initial_copy_assigned_data);
+        REQUIRE(copy_assigned.data() != cuda_storage.data());
+        REQUIRE(cuda_storage.size() == n);
+        REQUIRE(!cuda_storage.empty());
+        REQUIRE(copy_assigned.size() == n);
+        REQUIRE(!copy_assigned.empty());
+        REQUIRE(std::equal(copy_assigned.begin(), copy_assigned.end(), cuda_storage.begin()));
+    }
+    SECTION("self_assignment"){
+        auto initial_cuda_storage_data = cuda_storage.data();
+        auto& copy_assigned = cuda_storage;
+        copy_assigned = cuda_storage;
+        REQUIRE(&copy_assigned == &cuda_storage);
+        REQUIRE(copy_assigned.size() == n);
+        REQUIRE(copy_assigned.data() == initial_cuda_storage_data);
+    }
+}
+
 // TEST_CASE("test_cuda_aware_storage_device_range_constructor","[test_cuda_aware_storage]"){
 //     using value_type = float;
 //     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
@@ -187,34 +232,6 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_constructor","[test_cuda_aware_
 //     REQUIRE(cuda_storage.size() == 0);
 // }
 
-// TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_storage]"){
-//     using value_type = float;
-//     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
-
-//     auto n = std::size_t{10};
-//     auto cuda_storage = storage_type(n,1);
-
-//     SECTION("not_equal_size_realloction"){
-//         auto storage_copy = storage_type(n+10,0);
-//         REQUIRE(storage_copy.size() != n);
-//         storage_copy = cuda_storage;
-//         REQUIRE(cuda_storage.size() == n);
-//         REQUIRE(!cuda_storage.empty());
-//         REQUIRE(storage_copy.size() == n);
-//         REQUIRE(!storage_copy.empty());
-//         REQUIRE(storage_copy.data() != cuda_storage.data());
-//     }
-//     SECTION("equal_size_no_realloction"){
-//         auto storage_copy = storage_type(n,0);
-//         REQUIRE(storage_copy.size() == n);
-//         storage_copy = cuda_storage;
-//         REQUIRE(cuda_storage.size() == n);
-//         REQUIRE(!cuda_storage.empty());
-//         REQUIRE(storage_copy.size() == n);
-//         REQUIRE(!storage_copy.empty());
-//         REQUIRE(storage_copy.data() != cuda_storage.data());
-//     }
-// }
 
 // TEST_CASE("test_cuda_aware_storage_move_assignment","[test_cuda_aware_storage]"){
 //     using value_type = float;

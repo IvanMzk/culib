@@ -108,6 +108,13 @@ auto ptr_to_void(T* p){return static_cast<void*>(p);}
 template<typename T, template<typename> typename D>
 auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(p);}
 
+template<typename...T>
+inline auto cuda_pointer_get_attributes(const basic_pointer<T...>& p){
+    cudaPointerAttributes attr;
+    cudaPointerGetAttributes(&attr, p.get());
+    return attr;
+}
+
 template<typename T>
 class device_pointer : public basic_pointer<T,device_pointer>
 {
