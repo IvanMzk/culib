@@ -159,6 +159,9 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_s
 {
     using storage_type = TestType;
     using value_type = typename storage_type::value_type;
+    using allocator_type = typename storage_type::allocator_type;
+    REQUIRE(!std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
+    REQUIRE(std::allocator_traits<allocator_type>::is_always_equal());
     static constexpr std::size_t n{100};
     auto cuda_storage = storage_type(n,7);
 
@@ -198,6 +201,46 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_s
     }
 }
 
+TEMPLATE_TEST_CASE("test_cuda_aware_storage_move_constructor","[test_cuda_aware_storage]",
+    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+)
+{
+    using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
+
+    auto storage_size = 100;
+    auto cuda_storage = storage_type(storage_size, value_type{1.0f});
+    auto data = cuda_storage.data();
+    auto copy_moved = std::move(cuda_storage);
+    REQUIRE(!copy_moved.empty());
+    REQUIRE(copy_moved.size() == storage_size);
+    REQUIRE(copy_moved.data() == data);
+    REQUIRE(cuda_storage.empty());
+    REQUIRE(cuda_storage.size() == 0);
+}
+
+TEMPLATE_TEST_CASE("test_cuda_aware_storage_move_assignment","[test_cuda_aware_storage]",
+    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+)
+{
+    using storage_type = TestType;
+    using value_type = typename storage_type::value_type;
+    using allocator_type = typename storage_type::allocator_type;
+    REQUIRE(!std::allocator_traits<allocator_type>::propagate_on_container_move_assignment());
+    REQUIRE(std::allocator_traits<allocator_type>::is_always_equal());
+    std::size_t n{10};
+    value_type v{3};
+    auto cuda_storage = storage_type(n,v);
+
+    auto move_assigned = storage_type(n+10,0);
+    move_assigned = std::move(cuda_storage);
+    REQUIRE(move_assigned.size() == n);
+    REQUIRE(!move_assigned.empty());
+    REQUIRE(std::equal(move_assigned.begin(), move_assigned.end(), std::vector<value_type>(n,v).begin()));
+    REQUIRE(cuda_storage.size() == 0);
+    REQUIRE(cuda_storage.empty());
+}
+
 // TEST_CASE("test_cuda_aware_storage_device_range_constructor","[test_cuda_aware_storage]"){
 //     using value_type = float;
 //     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
@@ -217,33 +260,4 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_s
 
 
 
-// TEST_CASE("test_cuda_aware_storage_move_constructor","[test_cuda_aware_storage]"){
-//     using value_type = float;
-//     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
 
-//     auto storage_size = 100;
-//     auto cuda_storage = storage_type(storage_size, value_type{1.0f});
-//     auto data = cuda_storage.data();
-//     auto move = std::move(cuda_storage);
-//     REQUIRE(!move.empty());
-//     REQUIRE(move.size() == storage_size);
-//     REQUIRE(move.data() == data);
-//     REQUIRE(cuda_storage.empty());
-//     REQUIRE(cuda_storage.size() == 0);
-// }
-
-
-// TEST_CASE("test_cuda_aware_storage_move_assignment","[test_cuda_aware_storage]"){
-//     using value_type = float;
-//     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
-
-//     auto n = std::size_t{10};
-//     auto cuda_storage = storage_type(n,1);
-
-//     auto storage_copy = storage_type(n+10,0);
-//     storage_copy = std::move(cuda_storage);
-//     REQUIRE(storage_copy.size() == n);
-//     REQUIRE(!storage_copy.empty());
-//     REQUIRE(cuda_storage.size() == 0);
-//     REQUIRE(cuda_storage.empty());
-// }

@@ -47,12 +47,14 @@ public:
         }
         return *this;
     }
-    //no reallocation guarantee, result is always on device that other is
+    //use copy assignment if other's allocator disallow to propagate and allocators not equal, otherwise steal from other and put other in default state
     cuda_aware_storage& operator=(cuda_aware_storage&& other){
-        move_assign(std::move(other));
+        if (this != &other){
+            move_assign(std::move(other),  typename std::allocator_traits<allocator_type>::propagate_on_container_move_assignment());
+        }
         return *this;
     }
-    //no reallocation guarantee, result is always on device that other is
+    //no reallocation guarantee
     cuda_aware_storage(cuda_aware_storage&& other):
         allocator_{std::move(other.allocator_)},
         size_{other.size_},
@@ -135,12 +137,12 @@ private:
         copy(other.begin(),other.end(),begin_);
     }
 
-    //copy assign other's allocator if allocator not equal
+    //copy assign other's allocator
     void copy_assign(const cuda_aware_storage& other, std::true_type){
-        auto other_size = other.size();
         if (allocator_ ==  other.allocator_ || std::allocator_traits<allocator_type>::is_always_equal()){
             copy_assign(other, std::false_type{});
         }else{
+            auto other_size = other.size();
             auto other_allocator = other.get_allocator();
             auto new_buffer = other_allocator.allocate(other_size);
             deallocate();
@@ -150,8 +152,22 @@ private:
         }
         copy(other.begin(),other.end(),begin_);
     }
-    //move assign other allocator
-    void move_assign(cuda_aware_storage&& other){
+
+    //no move assign other's allocator, if allocators not equal copy are made
+    void move_assign(cuda_aware_storage&& other, std::false_type){
+        if (allocator_ ==  other.allocator_ || std::allocator_traits<allocator_type>::is_always_equal()){
+            deallocate();
+            size_ = other.size_;
+            begin_ = other.begin_;
+            other.size_ = 0;
+            other.begin_ = nullptr;
+        }else{
+            copy_assign(other, std::false_type{});
+        }
+    }
+
+    //move assign other's allocator
+    void move_assign(cuda_aware_storage&& other, std::true_type){
         deallocate();
         allocator_ = std::move(other.allocator_);
         size_ = other.size_;
