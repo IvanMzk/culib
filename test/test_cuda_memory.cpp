@@ -10,79 +10,20 @@ class test_pointer : public basic_pointer<T, test_pointer>
 public:
     using typename basic_pointer::pointer;
     using typename basic_pointer::value_type;
+    operator test_pointer<const T>()const{return test_pointer<const T>{get()};}
     using basic_pointer::operator=;
     test_pointer(pointer p = nullptr):
         basic_pointer(p)
     {}
 };
 
-template<typename D>
-class A
-{
-public:
-    A& operator=(const A&) = default;
-    A& operator=(A&&) = default;
-    D& operator=(std::nullptr_t){
-        a = 0;
-        return static_cast<D&>(*this);
-    }
-    D& operator=(int a_){
-        a = a_;
-        return static_cast<D&>(*this);
-
-    }
-    auto get(){return a;}
-private:
-    friend D;
-    A(const A&) = default;
-    A(A&&) = default;
-    A(int a_ = 0):
-        a{a_}
-    {}
-    int a;
-};
-
-class B : public A<B>
-{
-public:
-    B(int b = 0) :
-        A(b)
-    {}
-    using A::operator=;
-};
-
 }   //end of namespace test_cuda_memory
 
 TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
     test_cuda_memory::test_pointer<float>,
-    test_cuda_memory::test_pointer<const float>,
-    cuda_experimental::device_pointer<float>,
-    cuda_experimental::device_pointer<const float>
+    test_cuda_memory::test_pointer<const float>
 )
 {
-
-    SECTION("test_AB"){
-        using test_cuda_memory::A;
-        using test_cuda_memory::B;
-        REQUIRE(std::is_trivially_copyable_v<A<B>>);
-        REQUIRE(std::is_trivially_copyable_v<B>);
-        B b{1};
-        B b_{0};
-        B bb{};
-        REQUIRE(std::is_same_v<decltype(b_=b),B&>);
-        b_ = b;
-        REQUIRE(b_.get() == 1);
-        REQUIRE(b.get() == 1);
-
-        REQUIRE(std::is_same_v<decltype(b=nullptr),B&>);
-        b = nullptr;
-        REQUIRE(b.get() == 0);
-
-        REQUIRE(std::is_same_v<decltype(b=1),B&>);
-        b = 1;
-        REQUIRE(b.get() == 1);
-    }
-
     using value_type = float;
     using pointer_type = TestType;
 
@@ -190,6 +131,7 @@ TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
         REQUIRE(p <= pointer_type{a+1});
     }
 }
+
 
 TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
     cuda_experimental::device_allocator<float>

@@ -7,6 +7,17 @@
 
 namespace cuda_experimental{
 
+template<typename T, template<typename> typename D> class basic_pointer;
+
+template<typename T>
+class is_basic_pointer_t{
+    template<typename...U>
+    static std::true_type selector(const basic_pointer<U...>&);
+    static std::false_type selector(...);
+public: using type = decltype(selector(std::declval<T>()));
+};
+template<typename T> constexpr bool is_basic_pointer_v = is_basic_pointer_t<T>::type();
+
 template<typename T, template<typename> typename D>
 class basic_pointer{
     using derived_type = D<T>;
@@ -39,8 +50,13 @@ public:
         ptr-=offset;
         return to_derived();
     }
+    template<typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0>
+    friend auto operator+(const basic_pointer& lhs, const U& rhs){
+        derived_type res{static_cast<const derived_type&>(lhs)};
+        res.set_ptr(lhs.get() + rhs);
+        return res;
+    }
     operator bool()const{return static_cast<bool>(ptr);}
-    operator D<const T>()const{return D<const T>{ptr};}
     pointer get()const{return ptr;}
 private:
     friend derived_type;
@@ -50,17 +66,9 @@ private:
         ptr{ptr_}
     {}
     auto& to_derived(){return static_cast<derived_type&>(*this);}
+    void set_ptr(pointer ptr_){ptr = ptr_;}
     pointer ptr;
 };
-
-template<typename T>
-class is_basic_pointer_t{
-    template<typename...U>
-    static std::true_type selector(const basic_pointer<U...>&);
-    static std::false_type selector(...);
-public: using type = decltype(selector(std::declval<T>()));
-};
-template<typename T> constexpr bool is_basic_pointer_v = is_basic_pointer_t<T>::type();
 
 template<typename T, template<typename> typename D>
 auto operator++(basic_pointer<T,D>& lhs, int){
@@ -75,8 +83,6 @@ auto operator--(basic_pointer<T,D>& lhs, int){
     return res;
 }
 
-template<typename T, template<typename> typename D, typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0>
-auto operator+(const basic_pointer<T,D>& lhs, const U& rhs){return D<T>{lhs.get() + rhs};}
 template<typename T, template<typename> typename D, typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0>
 auto operator+(const U& lhs, const basic_pointer<T,D>& rhs){return rhs+lhs;}
 template<typename T, template<typename> typename D, typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0 >
@@ -106,7 +112,7 @@ auto ptr_to_void(const T* p){return static_cast<const void*>(p);}
 template<typename T>
 auto ptr_to_void(T* p){return static_cast<void*>(p);}
 template<typename T, template<typename> typename D>
-auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(p);}
+auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(static_cast<const D<T>&>(p));}
 
 template<typename...T>
 inline auto cuda_pointer_get_attributes(const basic_pointer<T...>& p){
@@ -143,6 +149,8 @@ class device_pointer : public basic_pointer<T,device_pointer>
         return device_data_reference{*this};
     }
 
+    int device_;
+
 public:
     using iterator_category = std::random_access_iterator_tag;
     using typename basic_pointer::difference_type;
@@ -150,12 +158,21 @@ public:
     using typename basic_pointer::pointer;
     using reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
     using const_reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
-    device_pointer(pointer p= nullptr):
-        basic_pointer{p}
+    using device_id_type = int;
+    static constexpr device_id_type undefined_device = -1;
+    device_pointer():
+        basic_pointer{nullptr},
+        device_{undefined_device}
     {}
+    device_pointer(pointer p, device_id_type device__):
+        basic_pointer{p},
+        device_{device__}
+    {}
+    operator device_pointer<const value_type>()const{return device_pointer<const value_type>{get(),device()};}
     using basic_pointer::operator=;
     auto operator*()const{return deref_helper(std::is_const<T>::type{});}
     auto operator[](difference_type i)const{return *(*this+i);}
+    auto device()const{return device_;}
 };
 
 /*
@@ -175,7 +192,7 @@ public:
     pointer allocate(size_type n){
         void* p;
         cuda_error_check(cudaMalloc(&p,n*sizeof(T)));
-        return pointer{static_cast<T*>(p)};
+        return pointer{static_cast<T*>(p), cuda_get_device()};
     }
     void deallocate(pointer p, size_type){
         cuda_error_check(cudaFree(ptr_to_void(p)));

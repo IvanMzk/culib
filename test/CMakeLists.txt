@@ -18,8 +18,8 @@ target_sources(Test PRIVATE
 )
 
 target_sources(Test_selected PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_aware_storage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_memory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_device.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_aware_storage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
 )

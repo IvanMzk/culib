@@ -38,7 +38,7 @@ public:
     cuda_aware_storage(const allocator_type& alloc = allocator_type()):
         allocator_{alloc},
         size_{0},
-        begin_{nullptr}
+        begin_{}
     {}
     //reallocate if not equal sizes or not equal allocators
     cuda_aware_storage& operator=(const cuda_aware_storage& other){
