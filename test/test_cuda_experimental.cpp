@@ -16,7 +16,7 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     using cuda_experimental::copy;
     using cuda_experimental::cuda_assert;
     using cuda_experimental::is_cuda_success;
-    using cuda_experimental::make_host_buffer;
+    using cuda_experimental::make_pageable_memory_buffer;
 
 // enum __device_builtin__ cudaMemoryType
 // {
@@ -72,7 +72,7 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     print_cuda_ptr_attr(p+offset);
 
     //host paged
-    auto buffer_to_register = make_host_buffer<value_type>(n);
+    auto buffer_to_register = make_pageable_memory_buffer<value_type>(n);
     auto mapping_alloc_registered = cuda_mapping_allocator_type{buffer_to_register.get()};
     auto p_registered = mapping_alloc_registered.allocate(n);
     print_cuda_ptr_attr(p_registered+offset);
@@ -83,7 +83,7 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     print_cuda_ptr_attr(p_dev+offset);
 
     //host not registered in UVA
-    auto buffer = make_host_buffer<value_type>(n);
+    auto buffer = make_pageable_memory_buffer<value_type>(n);
     print_ptr_attr(buffer.get()+offset);
 
     //UM
@@ -106,7 +106,7 @@ TEST_CASE("test_peer_copy","[test_cuda_experimental]"){
     using cuda_experimental::copy;
     using cuda_experimental::cuda_assert;
     using cuda_experimental::is_cuda_success;
-    using cuda_experimental::make_host_buffer;
+    using cuda_experimental::make_pageable_memory_buffer;
 
 
 

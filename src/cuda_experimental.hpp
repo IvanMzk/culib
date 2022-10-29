@@ -117,7 +117,7 @@ public:
             //On a system with no unified virtual addressing, the memory will be neither mapped nor portable.
             cuda_error_check(cudaHostRegister(host_buffer,n*sizeof(T),cudaHostRegisterDefault));
         }else{
-            host_buffer = make_host_locked_buffer<value_type>(n).release();
+            host_buffer = make_locked_memory_buffer<value_type>(n).release();
         }
         void* p;
         cuda_error_check(cudaHostGetDevicePointer(&p, host_buffer, 0));
