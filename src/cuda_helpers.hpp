@@ -31,12 +31,21 @@ inline auto cuda_get_device(){
 inline auto cuda_set_device(int dev){
     cuda_error_check(cudaSetDevice(dev));
 }
+class device_switcher{
+    int device_to_switch_back;
+public:
+    device_switcher(int device_to_switch):
+        device_to_switch_back{cuda_get_device()}
+    {
+        cuda_set_device(device_to_switch);
+    }
+    ~device_switcher(){cuda_set_device(device_to_switch_back);}
+};
 inline auto cuda_get_device_count(){
     int n;
     cuda_error_check(cudaGetDeviceCount(&n));
     return n;
 }
-
 
 
 }   //end of namespace cuda_experimental
