@@ -21,13 +21,14 @@ public:
 template<typename T, std::size_t N>
 class test_array
 {
-    template<typename...Args>
-    test_array(const Args&...args):
-        elements_{args...}
-    {}
-    constexpr std::size_t size()const{return N;}
-private:
     T elements_[N]{};
+public:
+    test_array() = default;
+    explicit test_array(const T& v){
+        std::fill_n(elements_,N,v);
+    }
+    constexpr std::size_t size()const{return N;}
+    bool operator==(const test_array& other){return std::equal(elements_,elements_+N, other.elements_);}
 };
 
 template<typename T>
@@ -179,7 +180,8 @@ TEMPLATE_TEST_CASE("test_device_allocator","[test_cuda_memory]",
 }
 
 TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
-    cuda_experimental::device_allocator<float>
+    cuda_experimental::device_allocator<float>,
+    (cuda_experimental::device_allocator<test_cuda_memory::test_array<std::size_t,5>>)
 )
 {
     using allocator_type = TestType;
@@ -192,10 +194,10 @@ TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
     constexpr std::size_t n{100};
     auto dev_ptr = allocator.allocate(n);
     auto const_dev_ptr = const_pointer_type{dev_ptr};
+    constexpr std::size_t a_len{10};
+    value_type a[a_len] = {value_type(1),value_type(2),value_type(3),value_type(4),value_type(5),value_type(6),value_type(7),value_type(8),value_type(9),value_type(10)};
 
     SECTION("copy_host_device"){
-        constexpr std::size_t a_len{10};
-        value_type a[a_len] = {1,2,3,4,5,6,7,8,9,10};
         value_type a_copy[a_len]{};
         copy(a,a+a_len,dev_ptr);
         SECTION("copy_from_dev_ptr"){
@@ -207,21 +209,18 @@ TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
         REQUIRE(std::equal(a,a+a_len,a_copy));
     }
     SECTION("copy_host_device_iter"){
-        auto a = std::vector<value_type>{1,2,3,4,5,6,7,8,9,10};
-        auto a_len = a.size();
-        auto a_copy = std::vector<value_type>(a_len);
-        copy(a.begin(),a.end(),dev_ptr);
+        auto v = std::vector<value_type>(a,a+a_len);
+        auto v_copy = std::vector<value_type>(a_len);
+        copy(v.begin(),v.end(),dev_ptr);
         SECTION("copy_from_dev_ptr"){
-            copy(dev_ptr,dev_ptr+a_len,a_copy.begin());
+            copy(dev_ptr,dev_ptr+a_len,v_copy.begin());
         }
         SECTION("copy_from_const_dev_ptr"){
-            copy(const_dev_ptr,const_dev_ptr+a_len,a_copy.begin());
+            copy(const_dev_ptr,const_dev_ptr+a_len,v_copy.begin());
         }
-        REQUIRE(std::equal(a.begin(),a.end(),a_copy.begin()));
+        REQUIRE(std::equal(v.begin(),v.end(),v_copy.begin()));
     }
     SECTION("copy_device_device"){
-        constexpr std::size_t a_len{10};
-        value_type a[a_len] = {1,2,3,4,5,6,7,8,9,10};
         value_type a_copy[a_len]{};
         copy(a,a+a_len,dev_ptr);
         auto dev_ptr_copy = allocator.allocate(a_len);
