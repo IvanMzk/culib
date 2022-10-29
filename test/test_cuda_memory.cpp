@@ -1,4 +1,5 @@
 #include <iostream>
+#include <array>
 #include "catch.hpp"
 #include "cuda_memory.hpp"
 
@@ -14,6 +15,32 @@ public:
     using basic_pointer::operator=;
     test_pointer(pointer p = nullptr):
         basic_pointer(p)
+    {}
+};
+
+template<typename T, std::size_t N>
+class test_array
+{
+    template<typename...Args>
+    test_array(const Args&...args):
+        elements_{args...}
+    {}
+    constexpr std::size_t size()const{return N;}
+private:
+    T elements_[N]{};
+};
+
+template<typename T>
+class test_lin_space
+{
+    T min_;
+    T max_;
+    std::size_t points_number_;
+public:
+    test_lin_space(const T& min__, const T& max__, std::size_t points_number__):
+        min_{min__},
+        max_{max__},
+        points_number_{points_number__}
     {}
 };
 
@@ -132,14 +159,32 @@ TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
     }
 }
 
+TEMPLATE_TEST_CASE("test_device_allocator","[test_cuda_memory]",
+    float,
+    (std::array<int,4>),
+    (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
+)
+{
+    using value_type = TestType;
+    using allocator_type = cuda_experimental::device_allocator<value_type>;
+    using cuda_experimental::cuda_get_device;
+
+    std::size_t n{100};
+    allocator_type allocator{};
+    auto dev = cuda_get_device();
+    auto ptr = allocator.allocate(n);
+    REQUIRE(ptr.get() != nullptr);
+    REQUIRE(ptr.device() == dev);
+    allocator.deallocate(ptr,n);
+}
 
 TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
     cuda_experimental::device_allocator<float>
 )
 {
-    using value_type = float;
-    using cuda_experimental::copy;
     using allocator_type = TestType;
+    using value_type = typename allocator_type::value_type;
+    using cuda_experimental::copy;
     using pointer_type = typename allocator_type::pointer;
     using const_pointer_type = typename allocator_type::const_pointer;
 
@@ -198,9 +243,9 @@ TEMPLATE_TEST_CASE("test_fill","[test_cuda_memory]",
     cuda_experimental::device_allocator<float>
 )
 {
-    using value_type = float;
-    using cuda_experimental::fill;
     using allocator_type = TestType;
+    using value_type = typename allocator_type::value_type;
+    using cuda_experimental::fill;
     using pointer_type = typename allocator_type::pointer;
     using const_pointer_type = typename allocator_type::const_pointer;
 

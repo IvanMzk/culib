@@ -177,11 +177,11 @@ public:
 
 /*
 * allocate device memory on current active device
-* deallocate device memory on device it has been allocated
 */
 template<typename T>
 class device_allocator
 {
+    static_assert(std::is_trivially_copyable_v<T>);
 public:
     using value_type = T;
     using pointer = device_pointer<T>;

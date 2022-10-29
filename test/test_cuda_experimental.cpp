@@ -97,7 +97,7 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     dev_alloc.deallocate(p_dev,n);
 }
 
-TEST_CASE("test_concurrent_capabilities","[test_cuda_experimental]"){
+TEST_CASE("test_device_capabilities","[test_cuda_experimental]"){
     using value_type = float;
     using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
     using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
@@ -106,14 +106,14 @@ TEST_CASE("test_concurrent_capabilities","[test_cuda_experimental]"){
     using cuda_experimental::cuda_get_device_properties;
     using cuda_experimental::cuda_get_device_count;
 
-    auto print_concurrent_capabilities = [](int dev){
+    auto print_capabilities = [](int dev){
         auto prop = cuda_get_device_properties(dev);
         std::cout<<std::endl<<"dev"<<dev<<"concurrentKernels"<<prop.concurrentKernels;
         std::cout<<std::endl<<"dev"<<dev<<"asyncEngineCount"<<prop.asyncEngineCount;
     };
 
     for (int i=0; i!=cuda_get_device_count(); ++i){
-        print_concurrent_capabilities(i);
+        print_capabilities(i);
     }
 
 
