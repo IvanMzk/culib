@@ -220,11 +220,14 @@ TEST_CASE("test_device_pointer","[test_cuda_memory]"){
 
     using value_type = float;
     using allocator_type = cuda_experimental::device_allocator<value_type>;
+    using cuda_experimental::cuda_get_device;
 
     allocator_type allocator{};
     std::vector<value_type> v{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
     auto n = v.size();
+    auto device = cuda_get_device();
     auto ptr_dev = allocator.allocate(n);
+    REQUIRE(ptr_dev.device() == device);
     copy(v.begin(), v.end(), ptr_dev);
 
     SECTION("device_pointer_dereference"){

@@ -1,7 +1,7 @@
 #include "catch.hpp"
 #include "cuda_helpers.hpp"
 
-#define ttt true;
+
 
 TEST_CASE("test_error_check","[test_cuda_helpers]"){
     using cuda_experimental::cuda_assert;

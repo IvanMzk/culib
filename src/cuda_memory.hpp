@@ -195,6 +195,7 @@ public:
         return pointer{static_cast<T*>(p), cuda_get_device()};
     }
     void deallocate(pointer p, size_type){
+        device_switcher switcher{p.device()};
         cuda_error_check(cudaFree(ptr_to_void(p)));
     }
     bool operator==(const device_allocator& other)const{return true;}

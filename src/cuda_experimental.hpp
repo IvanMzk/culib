@@ -17,6 +17,7 @@ public:
     test_pointer(pointer p= nullptr):
         basic_pointer{p}
     {}
+    operator test_pointer<const T>()const{return test_pointer<const T>{get()};}
     using basic_pointer::operator=;
 };
 
