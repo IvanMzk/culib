@@ -46,7 +46,11 @@ inline auto cuda_get_device_count(){
     cuda_error_check(cudaGetDeviceCount(&n));
     return n;
 }
-
+inline auto cuda_get_device_properties(int device){
+    cudaDeviceProp prop;
+    cuda_error_check(cudaGetDeviceProperties(&prop, device));
+    return prop;
+}
 
 }   //end of namespace cuda_experimental
 
