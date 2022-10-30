@@ -98,11 +98,6 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
 }
 
 TEST_CASE("test_device_capabilities","[test_cuda_experimental]"){
-    using value_type = float;
-    using cuda_mapping_allocator_type = cuda_experimental::cuda_mapping_allocator<value_type>;
-    using cuda_allocator_type = cuda_experimental::cuda_allocator<value_type>;
-    using cuda_experimental::unified_memory_allocator;
-    using cuda_experimental::basic_pointer;
     using cuda_experimental::cuda_get_device_properties;
     using cuda_experimental::cuda_get_device_count;
 
@@ -115,7 +110,16 @@ TEST_CASE("test_device_capabilities","[test_cuda_experimental]"){
     for (int i=0; i!=cuda_get_device_count(); ++i){
         print_capabilities(i);
     }
+}
 
+TEST_CASE("test_cuda_peer","[test_cuda_experimental]"){
+    using cuda_experimental::cuda_get_device_count;
+    using cuda_experimental::cuda_device_can_access_peer;
 
-
+    for (int dev=0; dev!=cuda_get_device_count(); ++dev){
+        for (int peer_dev=0; peer_dev!=cuda_get_device_count(); ++peer_dev){
+            std::cout<<std::endl<<"device"<<dev<<"peer_device"<<peer_dev<<"cuda_device_can_access_peer"<<cuda_device_can_access_peer(dev,peer_dev);
+        }
+    }
+    //cudaStream_t sss;
 }
