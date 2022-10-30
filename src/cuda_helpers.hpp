@@ -57,31 +57,57 @@ inline auto cuda_device_can_access_peer(int device, int peer_device){
     return i;
 }
 inline auto cuda_stream_create(){
-    cudaStream_t stream_;
-    cuda_error_check(cudaStreamCreate(&stream_));
-    return stream_;
+    cudaStream_t stream;
+    cuda_error_check(cudaStreamCreate(&stream));
+    return stream;
 }
 inline auto cuda_stream_destroy(cudaStream_t stream){
     cuda_error_check(cudaStreamDestroy(stream));
 }
+inline auto cuda_event_create(){
+    cudaEvent_t event;
+    cuda_error_check(cudaEventCreate(&event));
+    return event;
+}
+inline auto cuda_event_destroy(cudaEvent_t event){
+    cuda_error_check(cudaEventDestroy(event));
+}
 
-class cuda_stream{
-    cudaStream_t stream_;
+class cuda_stream
+{
+    cudaStream_t stream;
     bool sync_on_destruction;
 public:
     ~cuda_stream(){
         if (sync_on_destruction){
-            cuda_error_check(cudaStreamSynchronize(stream_));
+            cuda_error_check(cudaStreamSynchronize(stream));
         }
-        cuda_stream_destroy(stream_);
+        cuda_stream_destroy(stream);
     }
     cuda_stream(bool sync_on_destruction_ = true):
-        stream_{cuda_stream_create()},
+        stream{cuda_stream_create()},
         sync_on_destruction{sync_on_destruction_}
     {}
-    operator cudaStream_t(){return stream_;}
-    auto get()const{return stream_;}
+    operator cudaStream_t(){return stream;}
+    auto get()const{return stream;}
 
+};
+
+class cuda_timer
+{
+    cudaEvent_t event;
+public:
+    ~cuda_timer(){cuda_event_destroy(event);}
+    cuda_timer(cudaStream_t stream = cudaStreamLegacy):
+        event{cuda_event_create()}
+    {cuda_error_check(cudaEventRecord(event, stream));}
+    friend auto operator-(const cuda_timer& end, const cuda_timer& start){
+        cuda_error_check(cudaEventSynchronize(start.event));
+        cuda_error_check(cudaEventSynchronize(end.event));
+        float dt;
+        cuda_error_check(cudaEventElapsedTime(&dt,start.event,end.event));
+        return dt;
+    }
 };
 
 }   //end of namespace cuda_experimental
