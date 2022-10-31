@@ -77,12 +77,28 @@ class cuda_stream
 {
     cudaStream_t stream;
     bool sync_on_destruction;
+    cuda_stream(const cuda_stream&) = delete;
+    cuda_stream& operator=(const cuda_stream&) = delete;
 public:
     ~cuda_stream(){
-        if (sync_on_destruction){
-            cuda_error_check(cudaStreamSynchronize(stream));
+        if (stream){
+            if (sync_on_destruction){
+                cuda_error_check(cudaStreamSynchronize(stream));
+            }
+            cuda_stream_destroy(stream);
         }
-        cuda_stream_destroy(stream);
+    }
+    cuda_stream(cuda_stream&& other):
+        stream{other.stream},
+        sync_on_destruction{other.sync_on_destruction}
+    {
+        other.stream = 0;
+    }
+    cuda_stream& operator=(cuda_stream&& other){
+        stream = other.stream;
+        sync_on_destruction = other.sync_on_destruction;
+        other.stream = 0;
+        return *this;
     }
     cuda_stream(bool sync_on_destruction_ = true):
         stream{cuda_stream_create()},
@@ -90,13 +106,24 @@ public:
     {}
     operator cudaStream_t(){return stream;}
     auto get()const{return stream;}
-
 };
 
 class cuda_timer
 {
     cudaEvent_t event;
+    cuda_timer(const cuda_timer&) = delete;
+    cuda_timer& operator=(const cuda_timer&) = delete;
 public:
+    cuda_timer(cuda_timer&& other):
+        event{other.event}
+    {
+        other.event = 0;
+    }
+    cuda_timer& operator=(cuda_timer&& other){
+        event = other.event;
+        other.event = 0;
+        return *this;
+    }
     ~cuda_timer(){cuda_event_destroy(event);}
     cuda_timer(cudaStream_t stream = cudaStreamLegacy):
         event{cuda_event_create()}
