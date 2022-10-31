@@ -121,6 +121,7 @@ inline auto cuda_pointer_get_attributes(const basic_pointer<T...>& p){
     return attr;
 }
 
+//pointer to device memory
 template<typename T>
 class device_pointer : public basic_pointer<T,device_pointer>
 {
@@ -175,6 +176,7 @@ public:
     auto device()const{return device_;}
 };
 
+//pointer to page-locked host memory
 template<typename T>
 class locked_pointer : public basic_pointer<T,locked_pointer>
 {
@@ -247,6 +249,32 @@ public:
     bool operator==(const locked_allocator& other)const{return true;}
 };
 
+template<typename T, typename Alloc = locked_allocator<T>>
+class memory_buffer
+{
+public:
+    using allocator_type = Alloc;
+    using pointer = typename allocator_type::pointer;
+    using size_type = typename allocator_type::size_type;
+    memory_buffer(const memory_buffer&) = delete;
+    memory_buffer(memory_buffer&&) = delete;
+    memory_buffer& operator=(const memory_buffer&) = delete;
+    memory_buffer& operator=(memory_buffer&&) = delete;
+    ~memory_buffer(){allocator_.deallocate(elements_);}
+    memory_buffer(const size_type& n, const allocator_type& alloc = allocator_type{}):
+        allocator_{alloc},
+        size_{n},
+        elements_{allocator_.allocate(n)}
+    {}
+    auto data()const{return elements_;}
+    auto size()const{return size_;}
+private:
+    allocator_type allocator_;
+    size_type size_;
+    pointer elements_;
+
+};
+
 template<typename T, typename SizeT>
 auto make_locked_memory_buffer(const SizeT& n, unsigned int flags = cudaHostAllocDefault){
     void* p;
@@ -260,7 +288,7 @@ auto make_pageable_memory_buffer(const SizeT& n){
     return std::make_unique<T[]>(n);
 }
 
-//copy routines to transfer between host and device, parameters of ordinary pointers types treats as pointers to host memory
+//copy routines to transfer between host and device, parameters of ordinary pointers types treats as pointers to pageable host memory
 //copy from host to device
 template<typename T>
 void copy(const T* first, const T* last, device_pointer<T> d_first){
