@@ -175,8 +175,29 @@ public:
     auto device()const{return device_;}
 };
 
+template<typename T>
+class locked_pointer : public basic_pointer<T,locked_pointer>
+{
+    static_assert(std::is_trivially_copyable_v<T>);
+public:
+    using iterator_category = std::random_access_iterator_tag;
+    using typename basic_pointer::difference_type;
+    using typename basic_pointer::value_type;
+    using typename basic_pointer::pointer;
+    using reference = T&;
+    using const_reference = const T&;
+
+    locked_pointer(pointer p = nullptr):
+        basic_pointer{p}
+    {}
+    operator locked_pointer<const value_type>()const{return locked_pointer<const value_type>{get()};}
+    using basic_pointer::operator=;
+    auto& operator*()const{return *get();}
+    auto& operator[](difference_type i)const{return *(*this+i);}
+};
+
 /*
-* allocate device memory on current active device
+* allocate memory on current active device
 */
 template<typename T>
 class device_allocator
@@ -199,6 +220,31 @@ public:
         cuda_error_check(cudaFree(ptr_to_void(p)));
     }
     bool operator==(const device_allocator& other)const{return true;}
+};
+
+/*
+* allocate page-locked memory on host
+*/
+template<typename T>
+class locked_allocator
+{
+    static_assert(std::is_trivially_copyable_v<T>);
+public:
+    using value_type = T;
+    using pointer = locked_pointer<T>;
+    using const_pointer = locked_pointer<const T>;
+    using difference_type = typename pointer::difference_type;
+    using size_type = difference_type;
+
+    pointer allocate(size_type n){
+        void* p;
+        cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),cudaHostAllocDefault));
+        return pointer{static_cast<T*>(p)};
+    }
+    void deallocate(pointer p, size_type){
+        cuda_error_check(cudaFreeHost(ptr_to_void(p)));
+    }
+    bool operator==(const locked_allocator& other)const{return true;}
 };
 
 template<typename T, typename SizeT>
