@@ -219,7 +219,8 @@ auto make_pageable_memory_buffer(const SizeT& n){
 template<typename T>
 void copy(const T* first, const T* last, device_pointer<T> d_first){
     auto n = std::distance(first,last);
-    cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice));
+    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
+
 }
 
 template<typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_basic_pointer_v<It>,int> =0 >
@@ -235,7 +236,7 @@ void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::v
 template<typename T>
 void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
     auto n = distance(first,last);
-    cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost));
+    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
 }
 
 template<typename T, typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_basic_pointer_v<It>,int> =0>
@@ -252,7 +253,7 @@ void copy(device_pointer<T> first, device_pointer<T> last, It d_first){
 template<typename T>
 void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
     auto n = distance(first,last);
-    cuda_error_check(cudaMemcpy(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice));
+    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice, cuda_stream{}));
 }
 
 //fill device memory in range first last with v

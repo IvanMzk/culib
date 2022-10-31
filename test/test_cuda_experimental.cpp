@@ -17,6 +17,7 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     using cuda_experimental::cuda_assert;
     using cuda_experimental::is_cuda_success;
     using cuda_experimental::make_pageable_memory_buffer;
+    using cuda_experimental::make_locked_memory_buffer;
 
 // enum __device_builtin__ cudaMemoryType
 // {
@@ -71,7 +72,11 @@ TEST_CASE("test_pointer_attributes","[test_cuda_experimental]"){
     auto p = mapping_alloc.allocate(n);
     print_cuda_ptr_attr(p+offset);
 
-    //host paged
+    //host write combined
+    auto wc_buffer = make_locked_memory_buffer<value_type>(n,cudaHostAllocWriteCombined);
+    print_ptr_attr(wc_buffer.get());
+
+    //host paged, registered in UVA
     auto buffer_to_register = make_pageable_memory_buffer<value_type>(n);
     auto mapping_alloc_registered = cuda_mapping_allocator_type{buffer_to_register.get()};
     auto p_registered = mapping_alloc_registered.allocate(n);
@@ -105,6 +110,7 @@ TEST_CASE("test_device_capabilities","[test_cuda_experimental]"){
         auto prop = cuda_get_device_properties(dev);
         std::cout<<std::endl<<"dev"<<dev<<"concurrentKernels"<<prop.concurrentKernels;
         std::cout<<std::endl<<"dev"<<dev<<"asyncEngineCount"<<prop.asyncEngineCount;
+        std::cout<<std::endl<<"dev"<<dev<<"unifiedAddressing"<<prop.unifiedAddressing;
     };
 
     for (int i=0; i!=cuda_get_device_count(); ++i){

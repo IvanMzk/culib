@@ -16,11 +16,11 @@ target_sources(Test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_helpers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_aware_storage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_memory.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_experimental.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_copy.cpp
 )
 
 target_sources(Test_selected PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_copy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_experimental.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
 )

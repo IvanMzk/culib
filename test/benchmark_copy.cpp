@@ -59,6 +59,14 @@ namespace benchmark_copy{
         template<typename U>
         auto operator()(const U& n){return cuda_experimental::make_locked_memory_buffer<value_type>(n);}
     };
+    template<typename T>
+    struct locked_write_combined_buffer_maker
+    {
+        using value_type = T;
+        static constexpr char name[] = "locked_write_combined_buffer_maker";
+        template<typename U>
+        auto operator()(const U& n){return cuda_experimental::make_locked_memory_buffer<value_type>(n,cudaHostAllocWriteCombined);}
+    };
 
 }
 
@@ -84,7 +92,8 @@ TEST_CASE("test_benchmark_copy_helpers","[benchmark_copy]"){
 
 TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
     benchmark_copy::pageable_buffer_maker<float>,
-    benchmark_copy::locked_buffer_maker<float>
+    benchmark_copy::locked_buffer_maker<float>,
+    benchmark_copy::locked_write_combined_buffer_maker<float>
 )
 {
     using host_buffer_maker = TestType;
