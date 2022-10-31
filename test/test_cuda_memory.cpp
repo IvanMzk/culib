@@ -179,6 +179,22 @@ TEMPLATE_TEST_CASE("test_device_allocator","[test_cuda_memory]",
     allocator.deallocate(ptr,n);
 }
 
+TEMPLATE_TEST_CASE("test_locked_allocator","[test_cuda_memory]",
+    float,
+    (std::array<int,4>),
+    (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
+)
+{
+    using value_type = TestType;
+    using allocator_type = cuda_experimental::locked_allocator<value_type>;
+
+    std::size_t n{100};
+    allocator_type allocator{};
+    auto ptr = allocator.allocate(n);
+    REQUIRE(ptr.get() != nullptr);
+    allocator.deallocate(ptr,n);
+}
+
 TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
     cuda_experimental::device_allocator<float>,
     (cuda_experimental::device_allocator<test_cuda_memory::test_array<std::size_t,5>>)
@@ -261,7 +277,6 @@ TEMPLATE_TEST_CASE("test_fill","[test_cuda_memory]",
 }
 
 TEST_CASE("test_device_pointer","[test_cuda_memory]"){
-
     using value_type = float;
     using allocator_type = cuda_experimental::device_allocator<value_type>;
     using cuda_experimental::cuda_get_device;
@@ -345,4 +360,31 @@ TEST_CASE("test_device_pointer","[test_cuda_memory]"){
     }
 
     allocator.deallocate(ptr_dev, n);
+}
+
+TEST_CASE("test_locked_pointer","[test_cuda_memory]"){
+    using value_type = float;
+    using allocator_type = cuda_experimental::locked_allocator<value_type>;
+    using difference_type = typename allocator_type::difference_type;
+
+    allocator_type allocator{};
+    std::vector<value_type> v{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
+    auto n = v.size();
+    auto ptr_locked = allocator.allocate(n);
+    REQUIRE(std::is_same_v<decltype(*ptr_locked),value_type&>);
+    REQUIRE(std::is_same_v<decltype(*ptr_to_const(ptr_locked)),const value_type&>);
+    REQUIRE(std::is_same_v<decltype(ptr_locked[std::declval<difference_type>()]),value_type&>);
+    REQUIRE(std::is_same_v<decltype(ptr_to_const(ptr_locked)[std::declval<difference_type>()]),const value_type&>);
+    std::copy(v.begin(), v.end(), ptr_locked);
+    REQUIRE(std::equal(ptr_locked, ptr_locked+n, v.begin()));
+    REQUIRE(std::equal(ptr_to_const(ptr_locked), ptr_to_const(ptr_locked+n), v.begin()));
+
+    auto transformed = allocator.allocate(n);
+    auto transformator = [](const auto& v){return v+1;};
+    std::vector<value_type> v_expected{2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21};
+    std::transform(ptr_locked,ptr_locked+n,transformed,transformator);
+    REQUIRE(std::equal(v_expected.begin(),v_expected.end(), transformed));
+    allocator.deallocate(transformed,n);
+
+    allocator.deallocate(ptr_locked, n);
 }
