@@ -189,7 +189,8 @@ public:
     using reference = T&;
     using const_reference = const T&;
 
-    locked_pointer(pointer p = nullptr):
+    locked_pointer() = default;
+    explicit locked_pointer(pointer p):
         basic_pointer{p}
     {}
     operator locked_pointer<const value_type>()const{return locked_pointer<const value_type>{get()};}
@@ -213,13 +214,17 @@ public:
     using size_type = difference_type;
 
     pointer allocate(size_type n){
-        void* p;
-        cuda_error_check(cudaMalloc(&p,n*sizeof(T)));
+        void* p{nullptr};
+        if (n){
+            cuda_error_check(cudaMalloc(&p,n*sizeof(T)));
+        }
         return pointer{static_cast<T*>(p), cuda_get_device()};
     }
     void deallocate(pointer p, size_type){
-        device_switcher switcher{p.device()};
-        cuda_error_check(cudaFree(ptr_to_void(p)));
+        if (p){
+            device_switcher switcher{p.device()};
+            cuda_error_check(cudaFree(ptr_to_void(p)));
+        }
     }
     bool operator==(const device_allocator& other)const{return true;}
 };
@@ -239,17 +244,49 @@ public:
     using size_type = difference_type;
 
     pointer allocate(size_type n){
-        void* p;
-        cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),cudaHostAllocDefault));
+        void* p{nullptr};
+        if (n){
+            cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),cudaHostAllocDefault));
+        }
         return pointer{static_cast<T*>(p)};
     }
     void deallocate(pointer p, size_type){
-        cuda_error_check(cudaFreeHost(ptr_to_void(p)));
+        if (p){
+            cuda_error_check(cudaFreeHost(ptr_to_void(p)));
+        }
     }
     bool operator==(const locked_allocator& other)const{return true;}
 };
 
-template<typename T, typename Alloc = locked_allocator<T>>
+/*
+* allocate pageable memory on host
+*/
+template<typename T>
+class pageable_allocator
+{
+public:
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using difference_type = std::ptrdiff_t;
+    using size_type = difference_type;
+
+    pointer allocate(size_type n){
+        void* p{nullptr};
+        if (n){
+            p = new char[n*sizeof(T)]{};
+        }
+        return static_cast<pointer>(p);
+    }
+    void deallocate(pointer p, size_type){
+        if (p){
+            delete[] reinterpret_cast<char*>(p);
+        }
+    }
+    bool operator==(const pageable_allocator& other)const{return true;}
+};
+
+template<typename T, typename Alloc>
 class memory_buffer
 {
 public:
@@ -257,23 +294,45 @@ public:
     using pointer = typename allocator_type::pointer;
     using size_type = typename allocator_type::size_type;
     memory_buffer(const memory_buffer&) = delete;
-    memory_buffer(memory_buffer&&) = delete;
     memory_buffer& operator=(const memory_buffer&) = delete;
     memory_buffer& operator=(memory_buffer&&) = delete;
-    ~memory_buffer(){allocator_.deallocate(elements_);}
+    ~memory_buffer(){deallocate();}
     memory_buffer(const size_type& n, const allocator_type& alloc = allocator_type{}):
         allocator_{alloc},
         size_{n},
-        elements_{allocator_.allocate(n)}
+        begin_{allocate(n)}
     {}
-    auto data()const{return elements_;}
+    memory_buffer(memory_buffer&& other):
+        allocator_{std::move(other.allocator_)},
+        size_{other.size_},
+        begin_{other.begin_}
+    {
+        other.size_ = 0;
+        other.begin_ = nullptr;
+    }
+    auto data()const{return begin_;}
     auto size()const{return size_;}
+    auto begin()const{return begin_;}
+    auto end()const{return begin_+size_;}
 private:
+    pointer allocate(const size_type& n){
+        return allocator_.allocate(n);
+    }
+    void deallocate(){
+        if (begin_){
+            allocator_.deallocate(begin_,size_);
+            size_ = 0;
+            begin_ = nullptr;
+        }
+    }
     allocator_type allocator_;
     size_type size_;
-    pointer elements_;
-
+    pointer begin_;
 };
+template<typename T> using locked_buffer = memory_buffer<T, locked_allocator<T>>;
+template<typename T> using pageable_buffer = memory_buffer<T, pageable_allocator<T>>;
+//template<typename T> using pageable_buffer = memory_buffer<T, std::allocator<T>>;
+
 
 template<typename T, typename SizeT>
 auto make_locked_memory_buffer(const SizeT& n, unsigned int flags = cudaHostAllocDefault){
@@ -294,17 +353,21 @@ template<typename T>
 void copy(const T* first, const T* last, device_pointer<T> d_first){
     auto n = std::distance(first,last);
     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
-
 }
 
-template<typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_basic_pointer_v<It>,int> =0 >
-void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::value_type> d_first){
-    static_assert(!std::is_pointer_v<It>);
-    auto n = std::distance(first,last);
-    auto buffer = make_locked_memory_buffer<std::iterator_traits<It>::value_type>(n,cudaHostAllocWriteCombined);
-    std::uninitialized_copy_n(first,n,buffer.get());
-    copy(buffer.get(),buffer.get()+n,d_first);
-}
+// template<typename T>
+// void copy(locked_pointer<T> first, locked_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first, cudaStream_t stream = cuda_stream{}){
+//     auto n = std::distance(first,last);
+//     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, stream));
+// }
+
+// template<typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0 >
+// void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::value_type> d_first){
+//     auto n = std::distance(first,last);
+//     auto buffer = locked_buffer<typename std::iterator_traits<It>::value_type>(n);
+//     std::uninitialized_copy_n(first,n,buffer.data().get());
+//     copy(buffer.begin(),buffer.end(),d_first);
+// }
 
 //copy from device to host
 template<typename T>
@@ -312,16 +375,20 @@ void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T
     auto n = distance(first,last);
     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
 }
+// template<typename T>
+// void copy(device_pointer<T> first, device_pointer<T> last, locked_pointer<std::remove_const_t<T>> d_first, cudaStream_t stream = cuda_stream{}){
+//     auto n = distance(first,last);
+//     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost, stream));
+// }
 
-template<typename T, typename It, std::enable_if_t<!std::is_pointer_v<It> && !is_basic_pointer_v<It>,int> =0>
-void copy(device_pointer<T> first, device_pointer<T> last, It d_first){
-    static_assert(!std::is_pointer_v<It>);
-    static_assert(std::is_same_v<std::decay_t<T>, typename std::iterator_traits<It>::value_type>);
-    auto n = distance(first,last);
-    auto buffer = make_locked_memory_buffer<std::iterator_traits<It>::value_type>(n);
-    copy(first,last,buffer.get());
-    std::copy_n(buffer.get(),n,d_first);
-}
+// template<typename T, typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0>
+// void copy(device_pointer<T> first, device_pointer<T> last, It d_first){
+//     static_assert(std::is_same_v<std::decay_t<T>, typename std::iterator_traits<It>::value_type>);
+//     auto n = distance(first,last);
+//     auto buffer = locked_buffer<std::iterator_traits<It>::value_type>(n);
+//     copy(first,last,buffer.begin());
+//     std::copy_n(buffer.data().get(),n,d_first);
+// }
 
 //copy from device to device, src and dst must be allocated on same device
 template<typename T>
@@ -334,10 +401,17 @@ void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::r
 template<typename T>
 void fill(device_pointer<T> first, device_pointer<T> last, const T& v){
     auto n = distance(first,last);
-    auto buffer = make_locked_memory_buffer<T>(n, cudaHostAllocWriteCombined);
-    std::uninitialized_fill_n(buffer.get(),n,v);
-    copy(buffer.get(), buffer.get()+n, first);
+    auto buffer = locked_buffer<T>(n);
+    std::uninitialized_fill_n(buffer.data().get(),n,v);
+    copy(buffer.begin(), buffer.end(), first);
 }
+// template<typename T>
+// void fill(device_pointer<T> first, device_pointer<T> last, const T& v){
+//     auto n = distance(first,last);
+//     auto buffer = make_locked_memory_buffer<T>(n, cudaHostAllocWriteCombined);
+//     std::uninitialized_fill_n(buffer.get(),n,v);
+//     copy(buffer.get(), buffer.get()+n, first);
+// }
 
 }   //end of namespace cuda_experimental
 

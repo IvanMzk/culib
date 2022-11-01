@@ -49,7 +49,7 @@ namespace benchmark_copy{
         using value_type = T;
         static constexpr char name[] = "pageable_buffer_maker";
         template<typename U>
-        auto operator()(const U& n){return cuda_experimental::make_pageable_memory_buffer<value_type>(n);}
+        auto operator()(const U& n){return cuda_experimental::pageable_buffer<value_type>(n);}
     };
     template<typename T>
     struct locked_buffer_maker
@@ -57,16 +57,16 @@ namespace benchmark_copy{
         using value_type = T;
         static constexpr char name[] = "locked_buffer_maker";
         template<typename U>
-        auto operator()(const U& n){return cuda_experimental::make_locked_memory_buffer<value_type>(n);}
+        auto operator()(const U& n){return cuda_experimental::locked_buffer<value_type>(n);}
     };
-    template<typename T>
-    struct locked_write_combined_buffer_maker
-    {
-        using value_type = T;
-        static constexpr char name[] = "locked_write_combined_buffer_maker";
-        template<typename U>
-        auto operator()(const U& n){return cuda_experimental::make_locked_memory_buffer<value_type>(n,cudaHostAllocWriteCombined);}
-    };
+    // template<typename T>
+    // struct locked_write_combined_buffer_maker
+    // {
+    //     using value_type = T;
+    //     static constexpr char name[] = "locked_write_combined_buffer_maker";
+    //     template<typename U>
+    //     auto operator()(const U& n){return cuda_experimental::make_locked_memory_buffer<value_type>(n,cudaHostAllocWriteCombined);}
+    // };
 
 }
 
@@ -91,9 +91,9 @@ TEST_CASE("test_benchmark_copy_helpers","[benchmark_copy]"){
 }
 
 TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
-    benchmark_copy::pageable_buffer_maker<float>,
-    benchmark_copy::locked_buffer_maker<float>,
-    benchmark_copy::locked_write_combined_buffer_maker<float>
+    benchmark_copy::pageable_buffer_maker<float>
+    //benchmark_copy::locked_buffer_maker<float>
+    // benchmark_copy::locked_write_combined_buffer_maker<float>
 )
 {
     using host_buffer_maker = TestType;
@@ -104,6 +104,8 @@ TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
     using benchmark_copy::make_sizes;
     using benchmark_copy::size_to_str;
     using benchmark_copy::effective_bandwidth_to_str;
+    using cuda_experimental::make_pageable_memory_buffer;
+    using cuda_experimental::pageable_buffer;
 
     constexpr std::size_t initial_size{1<<20};
     constexpr std::size_t factor{2};
@@ -119,7 +121,7 @@ TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
             auto size = initial_size;
             auto host_buffer = host_buffer_maker{}(size);
             auto dev_buffer = dev_allocator.allocate(size);
-            copy(host_buffer.get(), host_buffer.get()+size,dev_buffer);
+            copy(host_buffer.begin(), host_buffer.end(),dev_buffer);
             dev_allocator.deallocate(dev_buffer,size);
         }
         //benching host to dev
@@ -127,7 +129,7 @@ TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
             auto host_buffer = host_buffer_maker{}(size);
             auto dev_buffer = dev_allocator.allocate(size);
             auto start = cuda_timer{};
-            copy(host_buffer.get(), host_buffer.get()+size,dev_buffer);
+            copy(host_buffer.begin(), host_buffer.end(),dev_buffer);
             auto stop = cuda_timer{};
             auto dt_ms = stop - start;
             std::cout<<std::endl<<size_to_str<value_type>(size)<<" "<<effective_bandwidth_to_str<value_type>(size, dt_ms);
@@ -142,7 +144,7 @@ TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
             auto size = initial_size;
             auto host_buffer = host_buffer_maker{}(size);
             auto dev_buffer = dev_allocator.allocate(size);
-            copy(dev_buffer, dev_buffer+size,host_buffer.get());
+            copy(dev_buffer, dev_buffer+size,host_buffer.begin());
             dev_allocator.deallocate(dev_buffer,size);
         }
         //benching dev to host
@@ -150,7 +152,7 @@ TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
             auto host_buffer = host_buffer_maker{}(size);
             auto dev_buffer = dev_allocator.allocate(size);
             auto start = cuda_timer{};
-            copy(dev_buffer, dev_buffer+size,host_buffer.get());
+            copy(dev_buffer, dev_buffer+size,host_buffer.begin());
             auto stop = cuda_timer{};
             auto dt_ms = stop - start;
             std::cout<<std::endl<<size_to_str<value_type>(size)<<" "<<effective_bandwidth_to_str<value_type>(size, dt_ms);
@@ -159,44 +161,44 @@ TEMPLATE_TEST_CASE("benchmark_copy_host_device","[benchmark_copy]",
     }
 }
 
-TEST_CASE("benchmark_copy_same_device","[benchmark_copy]")
-{
-    using value_type = float;
-    using device_allocator_type = cuda_experimental::device_allocator<value_type>;
-    using cuda_experimental::cuda_timer;
-    using cuda_experimental::copy;
-    using benchmark_copy::make_sizes;
-    using benchmark_copy::size_to_str;
-    using benchmark_copy::effective_bandwidth_to_str;
+// TEST_CASE("benchmark_copy_same_device","[benchmark_copy]")
+// {
+//     using value_type = float;
+//     using device_allocator_type = cuda_experimental::device_allocator<value_type>;
+//     using cuda_experimental::cuda_timer;
+//     using cuda_experimental::copy;
+//     using benchmark_copy::make_sizes;
+//     using benchmark_copy::size_to_str;
+//     using benchmark_copy::effective_bandwidth_to_str;
 
-    constexpr std::size_t initial_size{1<<20};
-    constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
-    constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    constexpr auto max_size = sizes.back();
-    device_allocator_type dev_allocator{};
-    SECTION("benchmark_copy_device_to_device"){
-        std::cout<<std::endl<<std::endl<<"benchmark_copy_device_to_device"<<std::endl;
-        //warming
-        for (std::size_t i{0}; i!=10; ++i){
-            auto size = initial_size;
-            auto dev_buffer_src = dev_allocator.allocate(size);
-            auto dev_buffer_dst = dev_allocator.allocate(size);
-            copy(dev_buffer_src, dev_buffer_src+size,dev_buffer_dst);
-            dev_allocator.deallocate(dev_buffer_src,size);
-            dev_allocator.deallocate(dev_buffer_dst,size);
-        }
-        //benching dev to host
-        for (const auto& size : sizes){
-            auto dev_buffer_src = dev_allocator.allocate(size);
-            auto dev_buffer_dst = dev_allocator.allocate(size);
-            auto start = cuda_timer{};
-            copy(dev_buffer_src, dev_buffer_src+size,dev_buffer_dst);
-            auto stop = cuda_timer{};
-            auto dt_ms = stop - start;
-            std::cout<<std::endl<<size_to_str<value_type>(size)<<" "<<effective_bandwidth_to_str<value_type>(size, dt_ms);
-            dev_allocator.deallocate(dev_buffer_src,size);
-            dev_allocator.deallocate(dev_buffer_dst,size);
-        }
-    }
-}
+//     constexpr std::size_t initial_size{1<<20};
+//     constexpr std::size_t factor{2};
+//     constexpr std::size_t n{10};
+//     constexpr auto sizes = make_sizes<initial_size,factor,n>();
+//     constexpr auto max_size = sizes.back();
+//     device_allocator_type dev_allocator{};
+//     SECTION("benchmark_copy_device_to_device"){
+//         std::cout<<std::endl<<std::endl<<"benchmark_copy_device_to_device"<<std::endl;
+//         //warming
+//         for (std::size_t i{0}; i!=10; ++i){
+//             auto size = initial_size;
+//             auto dev_buffer_src = dev_allocator.allocate(size);
+//             auto dev_buffer_dst = dev_allocator.allocate(size);
+//             copy(dev_buffer_src, dev_buffer_src+size,dev_buffer_dst);
+//             dev_allocator.deallocate(dev_buffer_src,size);
+//             dev_allocator.deallocate(dev_buffer_dst,size);
+//         }
+//         //benching dev to host
+//         for (const auto& size : sizes){
+//             auto dev_buffer_src = dev_allocator.allocate(size);
+//             auto dev_buffer_dst = dev_allocator.allocate(size);
+//             auto start = cuda_timer{};
+//             copy(dev_buffer_src, dev_buffer_src+size,dev_buffer_dst);
+//             auto stop = cuda_timer{};
+//             auto dt_ms = stop - start;
+//             std::cout<<std::endl<<size_to_str<value_type>(size)<<" "<<effective_bandwidth_to_str<value_type>(size, dt_ms);
+//             dev_allocator.deallocate(dev_buffer_src,size);
+//             dev_allocator.deallocate(dev_buffer_dst,size);
+//         }
+//     }
+// }
