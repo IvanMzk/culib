@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <chrono>
+#include <thread>
 #include "cuda_runtime.h"
 
 namespace cuda_experimental{
@@ -150,6 +151,24 @@ public:
     friend auto operator-(const cpu_timer& end, const cpu_timer& start){
         return std::chrono::duration<float,std::milli>(end.point_-start.point_).count();
     }
+};
+
+class thread_sync_wrapper
+{
+    std::thread thread_;
+public:
+    ~thread_sync_wrapper(){
+        if (thread_.joinable()){
+            thread_.join();
+        }
+    }
+    thread_sync_wrapper() = default;
+    thread_sync_wrapper(thread_sync_wrapper&&) = default;
+    thread_sync_wrapper& operator=(thread_sync_wrapper&&) = default;
+    template<typename F, typename...Args>
+    thread_sync_wrapper(F&& f, Args&&...args):
+        thread_{std::forward<F>(f),std::forward<Args>(args)...}
+    {}
 };
 
 }   //end of namespace cuda_experimental

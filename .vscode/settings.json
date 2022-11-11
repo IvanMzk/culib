@@ -82,6 +82,12 @@
         "__node_handle": "cpp",
         "memory_resource": "cpp",
         "__hash_table": "cpp",
-        "__tree": "cpp"
+        "__tree": "cpp",
+        "__locale": "cpp",
+        "__functional_03": "cpp",
+        "__split_buffer": "cpp",
+        "__atomic": "cpp",
+        "__atomic_generated": "cpp",
+        "__string": "cpp"
     }
 }

@@ -3,6 +3,7 @@
 
 #include <iterator>
 #include <memory>
+#include <immintrin.h>
 #include "cuda_helpers.hpp"
 
 namespace cuda_experimental{
@@ -236,17 +237,22 @@ template<typename T>
 class locked_allocator
 {
     static_assert(std::is_trivially_copyable_v<T>);
+    unsigned int flags;
 public:
     using value_type = T;
     using pointer = locked_pointer<T>;
     using const_pointer = locked_pointer<const T>;
     using difference_type = typename pointer::difference_type;
     using size_type = difference_type;
+    using is_aways_equal = std::true_type;
 
+    explicit locked_allocator(unsigned int flags_ = cudaHostAllocDefault):
+        flags{flags_}
+    {}
     pointer allocate(size_type n){
         void* p{nullptr};
         if (n){
-            cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),cudaHostAllocDefault));
+            cuda_error_check(cudaHostAlloc(&p,n*sizeof(T),flags));
         }
         return pointer{static_cast<T*>(p)};
     }
@@ -255,8 +261,48 @@ public:
             cuda_error_check(cudaFreeHost(ptr_to_void(p)));
         }
     }
-    bool operator==(const locked_allocator& other)const{return true;}
+    bool operator==(const locked_allocator& other)const{return flags == other.flags;}
 };
+
+/*
+* allocate page-locked memory on host
+*/
+template<typename T>
+class registered_allocator
+{
+    static_assert(std::is_trivially_copyable_v<T>);
+    unsigned int flags;
+public:
+    using value_type = T;
+    using pointer = locked_pointer<T>;
+    using const_pointer = locked_pointer<const T>;
+    using difference_type = typename pointer::difference_type;
+    using size_type = difference_type;
+    using is_aways_equal = std::true_type;
+
+    explicit registered_allocator(unsigned int flags_ = cudaHostRegisterDefault):
+        flags{flags_}
+    {}
+    pointer allocate(size_type n){
+        unsigned char* p{nullptr};
+        if (n){
+            auto n_bytes = n*sizeof(value_type);
+            p = new unsigned char[n_bytes];
+            cuda_error_check(cudaHostRegister(p,n_bytes,flags));
+        }
+        return pointer{reinterpret_cast<T*>(p)};
+    }
+    void deallocate(pointer p, size_type){
+        if (p){
+            cuda_error_check(cudaHostUnregister(p.get()));
+            delete[] reinterpret_cast<unsigned char*>(p.get());
+        }
+    }
+    bool operator==(const registered_allocator& other)const{return flags == other.flags;}
+};
+
+
+
 
 /*
 * allocate pageable memory on host
@@ -274,7 +320,7 @@ public:
     pointer allocate(size_type n){
         void* p{nullptr};
         if (n){
-            p = new char[n*sizeof(T)]{};
+            p = new char[n*sizeof(T)];
         }
         return static_cast<pointer>(p);
     }
@@ -291,6 +337,7 @@ class memory_buffer
 {
 public:
     using allocator_type = Alloc;
+    using value_type = typename allocator_type::value_type;
     using pointer = typename allocator_type::pointer;
     using size_type = typename allocator_type::size_type;
     memory_buffer(const memory_buffer&) = delete;
@@ -329,9 +376,11 @@ private:
     size_type size_;
     pointer begin_;
 };
+template<typename T> using device_buffer = memory_buffer<T, device_allocator<T>>;
 template<typename T> using locked_buffer = memory_buffer<T, locked_allocator<T>>;
-template<typename T> using pageable_buffer = memory_buffer<T, pageable_allocator<T>>;
-//template<typename T> using pageable_buffer = memory_buffer<T, std::allocator<T>>;
+template<typename T> using registered_buffer = memory_buffer<T, registered_allocator<T>>;
+template<typename T> using pageable_buffer = memory_buffer<T, std::allocator<T>>;
+using copy_buffer = locked_buffer<unsigned char>;
 
 
 template<typename T, typename SizeT>
@@ -347,34 +396,105 @@ auto make_pageable_memory_buffer(const SizeT& n){
     return std::make_unique<T[]>(n);
 }
 
+// template<typename>
+// auto clz(){
+//     static constexpr std::size_t hash[] = {0,1,3,7,14,29,27,22,13,26,21,11,23,15,31,30,28,25,19,6,12,24,17,2,5,10,20,9,18,4,8,16};
+//     //0x76BE629;
+//     //0x022fdd63cc95386d;
+// }
+
+inline auto alignment(void* p){
+   return (reinterpret_cast<std::uintptr_t>(p) & (~reinterpret_cast<std::uintptr_t>(p) + 1));
+}
+
+template<std::size_t A>
+auto align(void* p){
+    static_assert(A != 0);
+    static_assert((A&(A-1))  == 0);
+    return reinterpret_cast<void *>((reinterpret_cast<std::uintptr_t>(p)+(A-1)) & ~(A-1));
+}
+
+// template<typename BlockT>
+// auto align_for_copy(void* src, void* dst, std::size_t n_src, std::size_t n_dst){
+//     static constexpr auto block_size = sizeof(BlockT);
+//     static constexpr auto block_alignment = alignof(BlockT);
+//     struct aligned_for_copy{
+//         unsigned char* src_begin_aligned{reinterpret_cast<unsigned char*>(align<block_alignment>(src))};
+//         std::ptrdiff_t src_begin_offset{src_begin_aligned - reinterpret_cast<unsigned char*>(src)};
+//         unsigned char* dst_begin_aligned{reinterpret_cast<unsigned char*>(align<block_alignment>(dst))};
+//         std::ptrdiff_t dst_begin_offset{dst_begin_aligned - reinterpret_cast<unsigned char*>(dst)};
+//         std::size_t aligned_blocks_in_src{n_src>src_begin_offset ? (n_src - src_begin_offset)/block_size : std::size_t(0)};
+//         std::size_t aligned_blocks_in_dst{n_dst>dst_begin_offset ? (n_dst - dst_begin_offset)/block_size : std::size_t(0)};
+//         unsigned char* src_end_aligned{src_begin_aligned + aligned_blocks_in_src*block_size};
+//         unsigned char* dst_end_aligned{dst_begin_aligned + aligned_blocks_in_dst*block_size};
+//         unsigned char* src_end{reinterpret_cast<unsigned char*>(src)+n_src};
+//         unsigned char* dst_end{reinterpret_cast<unsigned char*>(dst)+n_src};
+//     };
+//     return aligned_for_copy{};
+// }
+
+template<typename BlockT>
+class aligned_for_copy{
+public:
+    aligned_for_copy(void* first__, std::size_t n__):
+        first_{first__},
+        n_{n__}
+    {}
+    constexpr auto block_size()const{return block_size_;}
+    constexpr auto block_alignment()const{return block_alignment_;}
+    auto first()const{return first_;}
+    auto n()const{return n_;}
+    auto first_aligned()const{return first_aligned_;}
+    auto first_offset()const{return first_offset_;}
+    auto aligned_blocks()const{return aligned_blocks_;}
+    auto last()const{return last_;}
+    auto last_aligned()const{return last_aligned_;}
+    auto last_offset()const{return last_offset_;}
+private:
+    static constexpr auto block_size_ = sizeof(BlockT);
+    static constexpr auto block_alignment_ = alignof(BlockT);
+    void* first_;
+    std::size_t n_;
+    void* first_aligned_{align<block_alignment_>(first_)};
+    std::ptrdiff_t first_offset_{reinterpret_cast<unsigned char*>(first_aligned_) - reinterpret_cast<unsigned char*>(first_)};
+    std::size_t aligned_blocks_{n_>first_offset_ ? (n_ - first_offset_)/block_size_ : std::size_t{0}};
+
+    void* last_{reinterpret_cast<unsigned char*>(first_)+n_};
+    void* last_aligned_{reinterpret_cast<unsigned char*>(first_aligned_) + aligned_blocks_*block_size_};
+    std::size_t last_offset_{reinterpret_cast<unsigned char*>(last_) > reinterpret_cast<unsigned char*>(last_aligned_) ?
+        reinterpret_cast<unsigned char*>(last_) - reinterpret_cast<unsigned char*>(last_aligned_) : std::size_t{0}};
+};
+
 //copy routines to transfer between host and device, parameters of ordinary pointers types treats as pointers to pageable host memory
 //copy from host to device
+// template<typename T>
+// void copy(const T* first, const T* last, device_pointer<T> d_first){
+//     auto n = std::distance(first,last);
+//     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
+// }
+
 template<typename T>
-void copy(const T* first, const T* last, device_pointer<T> d_first){
+void copy_locked(locked_pointer<T> first, locked_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first, cudaStream_t stream = cuda_stream{}){
     auto n = std::distance(first,last);
-    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
+    //std::cout<<std::endl<<"void copy(locked_pointer<T> first, locked_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first, cudaStream_t stream = cuda_stream{}){"<<n;
+    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, stream));
 }
 
-// template<typename T>
-// void copy(locked_pointer<T> first, locked_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first, cudaStream_t stream = cuda_stream{}){
-//     auto n = std::distance(first,last);
-//     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyHostToDevice, stream));
-// }
-
-// template<typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0 >
-// void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::value_type> d_first){
-//     auto n = std::distance(first,last);
-//     auto buffer = locked_buffer<typename std::iterator_traits<It>::value_type>(n);
-//     std::uninitialized_copy_n(first,n,buffer.data().get());
-//     copy(buffer.begin(),buffer.end(),d_first);
-// }
+template<typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0 >
+void copy_pageable(It first, It last, device_pointer<typename std::iterator_traits<It>::value_type> d_first){
+    auto n = std::distance(first,last);
+    //std::cout<<std::endl<<"void copy(It first, It last, device_pointer<typename std::iterator_traits<It>::value_type> d_first){"<<n;
+    auto buffer = locked_buffer<typename std::iterator_traits<It>::value_type>(n);
+    std::uninitialized_copy_n(first,n,buffer.data().get());
+    copy_locked(buffer.begin(),buffer.end(),d_first);
+}
 
 //copy from device to host
-template<typename T>
-void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
-    auto n = distance(first,last);
-    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
-}
+// template<typename T>
+// void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
+//     auto n = distance(first,last);
+//     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
+// }
 // template<typename T>
 // void copy(device_pointer<T> first, device_pointer<T> last, locked_pointer<std::remove_const_t<T>> d_first, cudaStream_t stream = cuda_stream{}){
 //     auto n = distance(first,last);
@@ -391,11 +511,11 @@ void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T
 // }
 
 //copy from device to device, src and dst must be allocated on same device
-template<typename T>
-void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
-    auto n = distance(first,last);
-    cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice, cuda_stream{}));
-}
+// template<typename T>
+// void copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
+//     auto n = distance(first,last);
+//     cuda_error_check(cudaMemcpyAsync(ptr_to_void(d_first), ptr_to_void(first), n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice, cuda_stream{}));
+// }
 
 //fill device memory in range first last with v
 template<typename T>
