@@ -88,6 +88,7 @@
         "__split_buffer": "cpp",
         "__atomic": "cpp",
         "__atomic_generated": "cpp",
-        "__string": "cpp"
+        "__string": "cpp",
+        "queue": "cpp"
     }
 }
