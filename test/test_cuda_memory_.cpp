@@ -160,56 +160,56 @@ TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
     }
 }
 
-TEMPLATE_TEST_CASE("test_device_allocator","[test_cuda_memory]",
-    float,
-    (std::array<int,4>),
-    (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
-)
-{
-    using value_type = TestType;
-    using allocator_type = cuda_experimental::device_allocator<value_type>;
-    using cuda_experimental::cuda_get_device;
+// TEMPLATE_TEST_CASE("test_device_allocator","[test_cuda_memory]",
+//     float,
+//     (std::array<int,4>),
+//     (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
+// )
+// {
+//     using value_type = TestType;
+//     using allocator_type = cuda_experimental::device_allocator<value_type>;
+//     using cuda_experimental::cuda_get_device;
 
-    std::size_t n{100};
-    allocator_type allocator{};
-    auto dev = cuda_get_device();
-    auto ptr = allocator.allocate(n);
-    REQUIRE(ptr.get() != nullptr);
-    REQUIRE(ptr.device() == dev);
-    allocator.deallocate(ptr,n);
-}
+//     std::size_t n{100};
+//     allocator_type allocator{};
+//     auto dev = cuda_get_device();
+//     auto ptr = allocator.allocate(n);
+//     REQUIRE(ptr.get() != nullptr);
+//     REQUIRE(ptr.device() == dev);
+//     allocator.deallocate(ptr,n);
+// }
 
-TEMPLATE_TEST_CASE("test_locked_allocator","[test_cuda_memory]",
-    float,
-    (std::array<int,4>),
-    (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
-)
-{
-    using value_type = TestType;
-    using allocator_type = cuda_experimental::locked_allocator<value_type>;
+// TEMPLATE_TEST_CASE("test_locked_allocator","[test_cuda_memory]",
+//     float,
+//     (std::array<int,4>),
+//     (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
+// )
+// {
+//     using value_type = TestType;
+//     using allocator_type = cuda_experimental::locked_allocator<value_type>;
 
-    std::size_t n{100};
-    allocator_type allocator{};
-    auto ptr = allocator.allocate(n);
-    REQUIRE(ptr.get() != nullptr);
-    allocator.deallocate(ptr,n);
-}
+//     std::size_t n{100};
+//     allocator_type allocator{};
+//     auto ptr = allocator.allocate(n);
+//     REQUIRE(ptr.get() != nullptr);
+//     allocator.deallocate(ptr,n);
+// }
 
-TEMPLATE_TEST_CASE("test_registered_allocator","[test_cuda_memory]",
-    float,
-    (std::array<int,4>),
-    (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
-)
-{
-    using value_type = TestType;
-    using allocator_type = cuda_experimental::registered_allocator<value_type>;
+// TEMPLATE_TEST_CASE("test_registered_allocator","[test_cuda_memory]",
+//     float,
+//     (std::array<int,4>),
+//     (test_cuda_memory::test_array<test_cuda_memory::test_lin_space<double>,10>)
+// )
+// {
+//     using value_type = TestType;
+//     using allocator_type = cuda_experimental::registered_allocator<value_type>;
 
-    std::size_t n{100};
-    allocator_type allocator{};
-    auto ptr = allocator.allocate(n);
-    REQUIRE(ptr.get() != nullptr);
-    allocator.deallocate(ptr,n);
-}
+//     std::size_t n{100};
+//     allocator_type allocator{};
+//     auto ptr = allocator.allocate(n);
+//     REQUIRE(ptr.get() != nullptr);
+//     allocator.deallocate(ptr,n);
+// }
 
 TEST_CASE("test_align","[test_cuda_memory]"){
     using cuda_experimental::align;
