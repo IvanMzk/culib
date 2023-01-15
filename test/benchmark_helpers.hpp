@@ -5,7 +5,6 @@
 #include <sstream>
 #include <iostream>
 #include "catch.hpp"
-#include "cuda_memory.hpp"
 
 namespace benchmark_helpers{
 
@@ -48,39 +47,39 @@ namespace benchmark_helpers{
 
 
 
-    template<typename T>
-    struct pageable_uninitialized_buffer_maker
-    {
-        using value_type = T;
-        static constexpr char name[] = "pageable_uninitialized_buffer_maker";
-        template<typename U>
-        auto operator()(const U& n){return cuda_experimental::pageable_buffer<value_type>(n);}
-    };
-    template<typename T>
-    struct pageable_initialized_buffer_maker
-    {
-        using value_type = T;
-        static constexpr char name[] = "pageable_initialized_buffer_maker";
-        value_type init_data_;
-        pageable_initialized_buffer_maker() = default;
-        pageable_initialized_buffer_maker(const value_type& init_data__):
-            init_data_{init_data__}
-        {}
-        template<typename U>
-        auto operator()(const U& n){
-            auto buf = cuda_experimental::pageable_buffer<value_type>(n);
-            std::uninitialized_fill(buf.begin(), buf.end(), init_data_);
-            return buf;
-        }
-    };
-    template<typename T>
-    struct locked_buffer_maker
-    {
-        using value_type = T;
-        static constexpr char name[] = "locked_buffer_maker";
-        template<typename U>
-        auto operator()(const U& n){return cuda_experimental::locked_buffer<value_type>(n);}
-    };
+    // template<typename T>
+    // struct pageable_uninitialized_buffer_maker
+    // {
+    //     using value_type = T;
+    //     static constexpr char name[] = "pageable_uninitialized_buffer_maker";
+    //     template<typename U>
+    //     auto operator()(const U& n){return cuda_experimental::pageable_buffer<value_type>(n);}
+    // };
+    // template<typename T>
+    // struct pageable_initialized_buffer_maker
+    // {
+    //     using value_type = T;
+    //     static constexpr char name[] = "pageable_initialized_buffer_maker";
+    //     value_type init_data_;
+    //     pageable_initialized_buffer_maker() = default;
+    //     pageable_initialized_buffer_maker(const value_type& init_data__):
+    //         init_data_{init_data__}
+    //     {}
+    //     template<typename U>
+    //     auto operator()(const U& n){
+    //         auto buf = cuda_experimental::pageable_buffer<value_type>(n);
+    //         std::uninitialized_fill(buf.begin(), buf.end(), init_data_);
+    //         return buf;
+    //     }
+    // };
+    // template<typename T>
+    // struct locked_buffer_maker
+    // {
+    //     using value_type = T;
+    //     static constexpr char name[] = "locked_buffer_maker";
+    //     template<typename U>
+    //     auto operator()(const U& n){return cuda_experimental::locked_buffer<value_type>(n);}
+    // };
     // template<typename T>
     // struct locked_write_combined_buffer_maker
     // {
