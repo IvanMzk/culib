@@ -1,6 +1,7 @@
 #include <numeric>
 #include "catch.hpp"
-#include "cuda_memcpy.hpp"
+//#include "cuda_memcpy.hpp"
+#include "cuda_copy.hpp"
 #include "benchmark_helpers.hpp"
 
 TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]",
@@ -35,7 +36,7 @@ TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]",
         std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
 
         copy_v2(host_src_ptr,host_src_ptr+size,device_ptr);
-        copy(device_ptr,device_ptr+size,host_dst_ptr);
+        copy_v2(device_ptr,device_ptr+size,host_dst_ptr);
 
         REQUIRE(std::equal(host_src_ptr, host_src_ptr+size , host_dst_ptr));
 

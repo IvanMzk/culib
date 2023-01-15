@@ -216,7 +216,8 @@ void copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T
     for (std::size_t i{0}; i!=n_chunks; ++i,src+=cuda_memcpy::locked_buffer_size,dst+=cuda_memcpy::locked_buffer_size){
         auto buf = cuda_memcpy::locked_pool().pop();
         //cuda_memcpy::dma_workers_pool().push(cuda_memcpy::dma_to_host, src, buf, cuda_memcpy::locked_buffer_size);   //sync dma transfer from device to locked
-        cuda_error_check(cudaMemcpyAsync(static_cast<void*>(buf.get().data().get()), static_cast<const void*>(src.get()) , cuda_memcpy::locked_buffer_size, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
+        //cuda_error_check(cudaMemcpyAsync(static_cast<void*>(buf.get().data().get()), static_cast<const void*>(src.get()) , cuda_memcpy::locked_buffer_size, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
+        cuda_error_check(cudaMemcpy(static_cast<void*>(buf.get().data().get()), static_cast<const void*>(src.get()) , cuda_memcpy::locked_buffer_size, cudaMemcpyKind::cudaMemcpyDeviceToHost));
         std::for_each(futures.begin(),futures.end(),[](auto& f){if (f){f.wait();}});
         futures = cuda_memcpy::memcpy_multithread_async<cuda_memcpy::memcpy_workers>(static_cast<void*>(dst), buf, cuda_memcpy::locked_buffer_size);   //copy to pageable
     }

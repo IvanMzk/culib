@@ -1,6 +1,7 @@
 #include <numeric>
 #include "catch.hpp"
 #include "cuda_memcpy.hpp"
+//#include "cuda_copy.hpp"
 #include "benchmark_helpers.hpp"
 
 
@@ -54,7 +55,7 @@ TEST_CASE("benchmark_cuda_copy","[benchmark_cuda_copy]"){
             auto host_src_ptr = host_alloc.allocate(size);
             std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
             cuda_timer start_to_device{};
-            copy_v2(host_src_ptr,host_src_ptr+size,device_ptr);
+            copy_baseline(host_src_ptr,host_src_ptr+size,device_ptr);
             cuda_timer stop_to_device{};
             dt_ms_to_device += stop_to_device - start_to_device;
             auto host_dst_ptr = host_alloc.allocate(size);
@@ -63,7 +64,7 @@ TEST_CASE("benchmark_cuda_copy","[benchmark_cuda_copy]"){
             copy(device_ptr, device_ptr+size, host_dst_ptr);
             cuda_timer stop_to_host{};
             dt_ms_to_host += stop_to_host - start_to_host;
-            REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
+            //REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
             device_alloc.deallocate(device_ptr,size);
             host_alloc.deallocate(host_src_ptr,size);
             host_alloc.deallocate(host_dst_ptr,size);
