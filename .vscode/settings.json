@@ -89,6 +89,7 @@
         "__atomic": "cpp",
         "__atomic_generated": "cpp",
         "__string": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "codecvt": "cpp"
     }
 }

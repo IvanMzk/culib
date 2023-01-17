@@ -1,6 +1,7 @@
 #ifndef CUDA_COPY_HPP_
 #define CUDA_COPY_HPP_
 
+#include <mmintrin.h>
 #include "cuda_pointer.hpp"
 #include "cuda_allocator.hpp"
 #include "thread_pool.hpp"
@@ -19,6 +20,7 @@ inline constexpr std::size_t locked_pool_size = 8;
 
 inline constexpr std::size_t copy_v2_pool_size = locked_pool_size;
 inline constexpr std::size_t copy_v2_workers = 8;
+using avx_block_type = __m256i;
 
 template<typename Alloc>
 class cuda_uninitialized_memory
@@ -79,7 +81,7 @@ inline auto& memcpy_workers_pool(){
 template<std::size_t>
 auto memcpy_multithread(void*, void*, std::size_t, void(*)(void*,void*,std::size_t));
 template<>
-auto memcpy_multithread<1>(void* dst, void* src, std::size_t n, void(*impl)(void*,void*,std::size_t)){
+inline auto memcpy_multithread<1>(void* dst, void* src, std::size_t n, void(*impl)(void*,void*,std::size_t)){
     impl(dst,src,n);
 }
 template<std::size_t N>
@@ -100,15 +102,30 @@ auto memcpy_multithread(void* dst, void* src, std::size_t n, void(*impl)(void*,v
     }
 }
 
-//host memcpy implementation
-auto host_memcpy(void* dst_host, void* src_host, std::size_t n){
+//return aligned pointer that is nearest to p and greater or equal to p
+//A - required alignment in bytes
+template<std::size_t A>
+inline auto align(const void* p){
+    static_assert(A != 0);
+    static_assert((A&(A-1))  == 0);
+    return reinterpret_cast<const void *>((reinterpret_cast<std::uintptr_t>(p)+(A-1)) & ~(A-1));
+}
+template<std::size_t A>
+inline auto align(void* p){
+    return const_cast<void*>(align<A>(const_cast<const void*>(p)));
+}
+
+//host memcpy using avx instructions
+void memcpy_avx(void* dst_host, const void* src_host, std::size_t n);
+
+inline auto host_memcpy(void* dst_host, void* src_host, std::size_t n){
     std::memcpy(dst_host,src_host,n);
 }
 //dma transfer between locked and device implementation
-auto dma_to_device(void* dst_device, void* src_locked, std::size_t n){
+inline auto dma_to_device(void* dst_device, void* src_locked, std::size_t n){
     cuda_error_check(cudaMemcpyAsync(dst_device, src_locked, n, cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
 }
-auto dma_to_host(void* dst_locked, void* src_device, std::size_t n){
+inline auto dma_to_host(void* dst_locked, void* src_device, std::size_t n){
     //cuda_error_check(cudaMemcpyAsync(dst_locked, src_device, n, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
     cuda_error_check(cudaMemcpy(dst_locked, src_device, n, cudaMemcpyKind::cudaMemcpyDeviceToHost));
 }
@@ -129,14 +146,14 @@ auto dma_to_host_multithread(void* dst_locked, void* src_device, std::size_t n){
 }
 
 //copy with staging between host and device
-auto copy_chunk_to_device(void* dst_device, void* src_host, std::size_t n){
+inline auto copy_chunk_to_device(void* dst_device, void* src_host, std::size_t n){
     auto buf = cuda_memcpy::locked_pool().pop();
     auto buf_ptr = static_cast<void*>(buf.get().data().get());
     host_memcpy_multithread<memcpy_workers>(buf_ptr,src_host, n);   //sync copy to locked buffer
     dma_to_device_multithread<dma_workers>(dst_device, buf_ptr, n);   //sync dma to device
     //buffer returns to pool on exit
 }
-auto copy_chunk_to_host(void* dst_host, void* src_device, std::size_t n){
+inline auto copy_chunk_to_host(void* dst_host, void* src_device, std::size_t n){
     auto buf = cuda_memcpy::locked_pool().pop();
     auto buf_ptr = static_cast<void*>(buf.get().data().get());
     dma_to_host_multithread<dma_workers>(buf_ptr, src_device, n); //sync dma to locked buffer

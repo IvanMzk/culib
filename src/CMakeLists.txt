@@ -15,6 +15,6 @@ target_sources(Test PRIVATE
 
 target_sources(Test_selected PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/cuda_helpers.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/cuda_copy.cpp
 )
 

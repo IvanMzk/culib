@@ -2,6 +2,7 @@
 #define CUDA_POINTER_HPP_
 
 #include <type_traits>
+#include <iterator>
 
 namespace cuda_experimental{
 
@@ -55,6 +56,7 @@ public:
         return res;
     }
     operator bool()const{return static_cast<bool>(ptr);}
+    operator T*()const{return ptr;}
     pointer get()const{return ptr;}
 private:
     friend derived_type;
