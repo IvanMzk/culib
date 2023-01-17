@@ -16,18 +16,18 @@ using cuda_experimental::cuda_memcpy::memcpy_avx;
 
 
 inline auto& memcpy_workers_pool(){
-    static thread_pool::thread_pool_v1<void(void*,const void*,std::size_t)> memcpy_pool{10, 10};
+    static thread_pool::thread_pool_v1<void*(void*,const void*,std::size_t)> memcpy_pool{10, 10};
     return memcpy_pool;
 }
 
 template<std::size_t>
-auto memcpy_multithread(void*, const void*, std::size_t, void(*)(void*,const void*,std::size_t));
+auto memcpy_multithread(void*, const void*, std::size_t, void*(*)(void*,const void*,std::size_t));
 template<>
-auto memcpy_multithread<1>(void* dst, const void* src, std::size_t n, void(*impl)(void*,const void*,std::size_t)){
+auto memcpy_multithread<1>(void* dst, const void* src, std::size_t n, void*(*impl)(void*,const void*,std::size_t)){
     impl(dst,src,n);
 }
 template<std::size_t N>
-auto memcpy_multithread(void* dst, const void* src, std::size_t n, void(*impl)(void*,const void*,std::size_t)){
+auto memcpy_multithread(void* dst, const void* src, std::size_t n, void*(*impl)(void*,const void*,std::size_t)){
     static_assert(N>1);
     if (n!=0){
         std::array<std::remove_reference_t<decltype(memcpy_workers_pool())>::future_type, N-1> futures{};
@@ -45,8 +45,8 @@ auto memcpy_multithread(void* dst, const void* src, std::size_t n, void(*impl)(v
 }
 
 inline auto host_memcpy(void* dst_host, const void* src_host, std::size_t n){
-    //std::memcpy(dst_host,src_host,n);
-    memcpy_avx(dst_host,src_host,n);
+    //return std::memcpy(dst_host,src_host,n);
+    return memcpy_avx(dst_host,src_host,n);
 }
 inline auto host_to_device_memcpy(void* dst_device, const void* src_host, std::size_t n){
     cuda_error_check(cudaMemcpyAsync(dst_device, src_host, n, cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
@@ -89,6 +89,16 @@ void copy_baseline(device_pointer<T> first, device_pointer<T> last, std::remove_
 inline constexpr std::size_t copy_workers = 4;
 //pageable locked
 template<typename T>
+void copy_multithread(const T* first, const T* last, T* d_first){
+    auto n = std::distance(first,last)*sizeof(T);
+    memcpy_multithread<copy_workers>(d_first,first,n,std::memcpy);
+}
+template<typename T>
+void copy_avx_multithread(const T* first, const T* last, T* d_first){
+    auto n = std::distance(first,last)*sizeof(T);
+    memcpy_multithread<copy_workers>(d_first,first,n,memcpy_avx);
+}
+template<typename T>
 void copy_multithread(const T* first, const T* last, locked_pointer<std::remove_const_t<T>> d_first){
     auto n = std::distance(first,last)*sizeof(T);
     memcpy_multithread<copy_workers>(d_first,first,n,host_memcpy);
@@ -124,53 +134,57 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 }   //end of namespace benchmark_cuda_copy_experiment
 
 
-// TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
-//     using cuda_experimental::cuda_memcpy::memcpy_avx;
-//     using benchmark_helpers::make_sizes;
-//     using value_type = int;
-//     using host_allocator_type = std::allocator<value_type>;
-//     using cuda_experimental::cpu_timer;
-//     using benchmark_helpers::bandwidth_to_str;
-//     using benchmark_helpers::size_to_str;
+TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
+    using cuda_experimental::cuda_memcpy::memcpy_avx;
+    using benchmark_cuda_copy_experiment::copy_avx_multithread;
+    using benchmark_cuda_copy_experiment::copy_multithread;
+    using benchmark_helpers::make_sizes;
+    using value_type = int;
+    using host_allocator_type = std::allocator<value_type>;
+    using cuda_experimental::cpu_timer;
+    using benchmark_helpers::bandwidth_to_str;
+    using benchmark_helpers::size_to_str;
 
-//     host_allocator_type host_alloc{};
-//     constexpr std::size_t initial_size{1000*1000};
-//     constexpr std::size_t factor{2};
-//     constexpr std::size_t n{10};
-//     constexpr auto sizes = make_sizes<initial_size,factor,n>();
-//     constexpr std::size_t iters_per_size{10};
+    host_allocator_type host_alloc{};
+    constexpr std::size_t initial_size{1000*1000+1};
+    constexpr std::size_t factor{2};
+    constexpr std::size_t n{10};
+    constexpr auto sizes = make_sizes<initial_size,factor,n>();
+    constexpr std::size_t iters_per_size{10};
 
-//     for (const auto& size : sizes){
-//         float dt_baseline_memcpy_ms{0};
-//         float dt_avx_memcpy_ms{0};
-//         auto n = size*sizeof(value_type);
-//         for (std::size_t i{0}; i!=iters_per_size; ++i){
-//             auto host_src_ptr = host_alloc.allocate(size);
-//             auto host_dst_ptr = host_alloc.allocate(size);
-//             std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
-//             cpu_timer start_baseline_memcpy{};
-//             std::memcpy(host_dst_ptr, host_src_ptr, n);
-//             cpu_timer stop_baseline_memcpy{};
-//             dt_baseline_memcpy_ms += stop_baseline_memcpy - start_baseline_memcpy;
-//             REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
-//             host_alloc.deallocate(host_dst_ptr,size);
-//             host_alloc.deallocate(host_src_ptr,size);
+    for (const auto& size : sizes){
+        float dt_baseline_memcpy_ms{0};
+        float dt_avx_memcpy_ms{0};
+        auto n = size*sizeof(value_type);
+        for (std::size_t i{0}; i!=iters_per_size; ++i){
+            auto host_src_ptr = host_alloc.allocate(size);
+            auto host_dst_ptr = host_alloc.allocate(size);
+            std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
+            cpu_timer start_baseline_memcpy{};
+            //std::memcpy(host_dst_ptr, host_src_ptr, n);
+            copy_multithread(host_src_ptr, host_src_ptr+size, host_dst_ptr);
+            cpu_timer stop_baseline_memcpy{};
+            dt_baseline_memcpy_ms += stop_baseline_memcpy - start_baseline_memcpy;
+            REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
+            host_alloc.deallocate(host_dst_ptr,size);
+            host_alloc.deallocate(host_src_ptr,size);
 
-//             host_src_ptr = host_alloc.allocate(size);
-//             host_dst_ptr = host_alloc.allocate(size);
-//             std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
-//             cpu_timer start_avx_memcpy{};
-//             memcpy_avx(host_dst_ptr, host_src_ptr, n);
-//             cpu_timer stop_avx_memcpy{};
-//             dt_avx_memcpy_ms += stop_avx_memcpy - start_avx_memcpy;
-//             REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
-//             host_alloc.deallocate(host_dst_ptr,size);
-//             host_alloc.deallocate(host_src_ptr,size);
-//         }
-//         std::cout<<std::endl<<size_to_str<value_type>(size)<<" baseline_memcpy "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_baseline_memcpy_ms)
-//             <<" avx_memcpy "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_avx_memcpy_ms);
-//     }
-// }
+            host_src_ptr = host_alloc.allocate(size);
+            host_dst_ptr = host_alloc.allocate(size);
+            std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
+            cpu_timer start_avx_memcpy{};
+            //memcpy_avx(host_dst_ptr, host_src_ptr, n);
+            copy_avx_multithread(host_src_ptr, host_src_ptr+size, host_dst_ptr);
+            cpu_timer stop_avx_memcpy{};
+            dt_avx_memcpy_ms += stop_avx_memcpy - start_avx_memcpy;
+            REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
+            host_alloc.deallocate(host_dst_ptr,size);
+            host_alloc.deallocate(host_src_ptr,size);
+        }
+        std::cout<<std::endl<<size_to_str<value_type>(size)<<" baseline_memcpy "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_baseline_memcpy_ms)
+            <<" avx_memcpy "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_avx_memcpy_ms);
+    }
+}
 
 
 // TEST_CASE("benchmark_locked_device_copy","[benchmark_cuda_copy_experiment]"){
@@ -224,55 +238,55 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 //     }
 // }
 
-TEST_CASE("benchmark_locked_pageable_copy","[benchmark_cuda_copy_experiment]"){
+// TEST_CASE("benchmark_locked_pageable_copy","[benchmark_cuda_copy_experiment]"){
 
-    using benchmark_helpers::make_sizes;
-    using benchmark_helpers::size_to_str;
-    using benchmark_helpers::bandwidth_to_str;
-    using cuda_experimental::cpu_timer;
-    using value_type = int;
-    using device_alloc_type = cuda_experimental::device_allocator<value_type>;
-    using host_alloc_type = std::allocator<value_type>;
-    using locked_alloc_type = cuda_experimental::locked_allocator<value_type>;
-    using benchmark_cuda_copy_experiment::copy_baseline;
-    using benchmark_cuda_copy_experiment::copy_multithread;
+//     using benchmark_helpers::make_sizes;
+//     using benchmark_helpers::size_to_str;
+//     using benchmark_helpers::bandwidth_to_str;
+//     using cuda_experimental::cpu_timer;
+//     using value_type = int;
+//     using device_alloc_type = cuda_experimental::device_allocator<value_type>;
+//     using host_alloc_type = std::allocator<value_type>;
+//     using locked_alloc_type = cuda_experimental::locked_allocator<value_type>;
+//     using benchmark_cuda_copy_experiment::copy_baseline;
+//     using benchmark_cuda_copy_experiment::copy_multithread;
 
-    constexpr std::size_t initial_size{1<<20};
-    constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
-    constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    constexpr std::size_t iters_per_size{10};
+//     constexpr std::size_t initial_size{1<<20};
+//     constexpr std::size_t factor{2};
+//     constexpr std::size_t n{10};
+//     constexpr auto sizes = make_sizes<initial_size,factor,n>();
+//     constexpr std::size_t iters_per_size{10};
 
-    device_alloc_type device_alloc{};
-    host_alloc_type host_alloc{};
-    locked_alloc_type locked_alloc{};
-    //locked_alloc_type locked_alloc{cudaHostAllocWriteCombined};
+//     device_alloc_type device_alloc{};
+//     host_alloc_type host_alloc{};
+//     locked_alloc_type locked_alloc{};
+//     //locked_alloc_type locked_alloc{cudaHostAllocWriteCombined};
 
-    for (const auto& size : sizes){
-        float dt_ms_locked_to_pageable{0};
-        float dt_ms_pageable_to_locked{0};
-        auto n = size*sizeof(value_type);
-        for (std::size_t i{0}; i!=iters_per_size; ++i){
-            auto pageable_ptr = host_alloc.allocate(size);
-            auto locked_src_ptr = locked_alloc.allocate(size);
-            std::iota(locked_src_ptr, locked_src_ptr+size, value_type{0});
-            cpu_timer start_locked_to_pageable{};
-            copy_multithread(locked_src_ptr,locked_src_ptr+size,pageable_ptr);
-            cpu_timer stop_locked_to_pageable{};
-            dt_ms_locked_to_pageable += stop_locked_to_pageable - start_locked_to_pageable;
+//     for (const auto& size : sizes){
+//         float dt_ms_locked_to_pageable{0};
+//         float dt_ms_pageable_to_locked{0};
+//         auto n = size*sizeof(value_type);
+//         for (std::size_t i{0}; i!=iters_per_size; ++i){
+//             auto pageable_ptr = host_alloc.allocate(size);
+//             auto locked_src_ptr = locked_alloc.allocate(size);
+//             std::iota(locked_src_ptr, locked_src_ptr+size, value_type{0});
+//             cpu_timer start_locked_to_pageable{};
+//             copy_multithread(locked_src_ptr,locked_src_ptr+size,pageable_ptr);
+//             cpu_timer stop_locked_to_pageable{};
+//             dt_ms_locked_to_pageable += stop_locked_to_pageable - start_locked_to_pageable;
 
-            auto locked_dst_ptr = locked_alloc.allocate(size);
-            std::fill(locked_dst_ptr, locked_dst_ptr+size, 0);
-            cpu_timer start_pageable_to_locked{};
-            copy_multithread(pageable_ptr, pageable_ptr+size, locked_dst_ptr);
-            cpu_timer stop_pageable_to_locked{};
-            dt_ms_pageable_to_locked += stop_pageable_to_locked - start_pageable_to_locked;
-            REQUIRE(std::equal(locked_src_ptr, locked_src_ptr+size, locked_dst_ptr));
-            locked_alloc.deallocate(locked_dst_ptr,size);
-            locked_alloc.deallocate(locked_src_ptr,size);
-            host_alloc.deallocate(pageable_ptr,size);
-        }
-        std::cout<<std::endl<<size_to_str<value_type>(size)<<" locked_to_pageable "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_locked_to_pageable)<<
-            " pageable_to_locked "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_pageable_to_locked);
-    }
-}
+//             auto locked_dst_ptr = locked_alloc.allocate(size);
+//             std::fill(locked_dst_ptr, locked_dst_ptr+size, 0);
+//             cpu_timer start_pageable_to_locked{};
+//             copy_multithread(pageable_ptr, pageable_ptr+size, locked_dst_ptr);
+//             cpu_timer stop_pageable_to_locked{};
+//             dt_ms_pageable_to_locked += stop_pageable_to_locked - start_pageable_to_locked;
+//             REQUIRE(std::equal(locked_src_ptr, locked_src_ptr+size, locked_dst_ptr));
+//             locked_alloc.deallocate(locked_dst_ptr,size);
+//             locked_alloc.deallocate(locked_src_ptr,size);
+//             host_alloc.deallocate(pageable_ptr,size);
+//         }
+//         std::cout<<std::endl<<size_to_str<value_type>(size)<<" locked_to_pageable "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_locked_to_pageable)<<
+//             " pageable_to_locked "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_pageable_to_locked);
+//     }
+// }

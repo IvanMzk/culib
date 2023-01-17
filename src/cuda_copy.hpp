@@ -116,7 +116,7 @@ inline auto align(void* p){
 }
 
 //host memcpy using avx instructions
-void memcpy_avx(void* dst_host, const void* src_host, std::size_t n);
+void* memcpy_avx(void* dst_host, const void* src_host, std::size_t n);
 
 inline auto host_memcpy(void* dst_host, void* src_host, std::size_t n){
     std::memcpy(dst_host,src_host,n);
