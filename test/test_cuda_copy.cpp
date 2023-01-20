@@ -1,6 +1,5 @@
 #include <numeric>
 #include "catch.hpp"
-//#include "cuda_memcpy.hpp"
 #include "cuda_copy.hpp"
 #include "benchmark_helpers.hpp"
 
@@ -15,7 +14,7 @@ TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
     host_allocator_type host_alloc{};
     constexpr std::size_t initial_size{1000*1000};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
+    constexpr std::size_t n{5};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     constexpr std::size_t block_alignment = alignof(cuda_experimental::cuda_memcpy::avx_block_type);
     static_assert(block_alignment%sizeof(value_type) == 0);
@@ -109,19 +108,12 @@ TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
 
 
 
-TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]",
-    //std::size_t
-    //float
-    int
-    //cuda_experimental::device_allocator<float>
-    //(cuda_experimental::device_allocator<test_cuda_memory::test_array<std::size_t,5>>)
-)
+TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
 {
     using value_type = typename TestType;
     using device_alloc_type = cuda_experimental::device_allocator<value_type>;
     using host_alloc_type = std::allocator<value_type>;
     using cuda_experimental::copy;
-    using cuda_experimental::copy_v2;
     using benchmark_helpers::make_sizes;
     // using pointer_type = typename allocator_type::pointer;
     // using const_pointer_type = typename allocator_type::const_pointer;
@@ -140,8 +132,8 @@ TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]",
         auto host_dst_ptr = host_alloc.allocate(size);
         std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
 
-        copy_v2(host_src_ptr,host_src_ptr+size,device_ptr);
-        copy_v2(device_ptr,device_ptr+size,host_dst_ptr);
+        copy(host_src_ptr,host_src_ptr+size,device_ptr);
+        copy(device_ptr,device_ptr+size,host_dst_ptr);
 
         REQUIRE(std::equal(host_src_ptr, host_src_ptr+size , host_dst_ptr));
 

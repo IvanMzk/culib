@@ -90,6 +90,7 @@
         "__atomic_generated": "cpp",
         "__string": "cpp",
         "queue": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "__config": "cpp"
     }
 }

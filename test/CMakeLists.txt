@@ -7,7 +7,7 @@ target_include_directories(Test_selected PRIVATE ${${project_name}_SOURCE_DIR}//
 target_include_directories(Test_selected PRIVATE ${${project_name}_SOURCE_DIR}//..//multithreading//src)
 target_include_directories(Test_selected PRIVATE C://Program\ Files//NVIDIA\ GPU\ Computing\ Toolkit//CUDA//v10.2//include)
 target_link_directories(Test_selected PRIVATE C://Program\ Files//NVIDIA\ GPU\ Computing\ Toolkit//CUDA//v10.2//lib//x64)
-target_compile_options(Test_selected PRIVATE -W1 -std:c++17 /Zc:__cplusplus "$<$<CONFIG:RELEASE>:-O2>" /bigobj /MP)
+target_compile_options(Test_selected PRIVATE -W1 -std:c++17 /arch:AVX2 /Zc:__cplusplus "$<$<CONFIG:RELEASE>:-O2>" /bigobj /MP)
 target_link_libraries(Test_selected PRIVATE cudart_static.lib)
 target_link_options(Test_selected PRIVATE /STACK:104857600)
 
@@ -21,12 +21,12 @@ target_sources(Test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_copy.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_experimental_copy.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/experimental_ptr_alloc_copy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_cuda_copy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_cuda_copy_experiment.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_copy.cpp
 )
 
 target_sources(Test_selected PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_cuda_copy_experiment.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_cuda_copy.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
 )
