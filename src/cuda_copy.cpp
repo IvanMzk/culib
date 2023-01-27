@@ -1,7 +1,7 @@
 #include "cuda_memory.hpp"
 
 namespace cuda_experimental{
-namespace cuda_memcpy{
+namespace cuda_copy{
 
 namespace detail{
 inline constexpr std::size_t unrolling_factor = 4;

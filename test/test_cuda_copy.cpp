@@ -4,8 +4,8 @@
 #include "benchmark_helpers.hpp"
 
 
-TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
-    using cuda_experimental::cuda_memcpy::memcpy_avx;
+TEST_CASE("test_memcpy_avx","[test_cuda_copy]"){
+    using cuda_experimental::cuda_copy::memcpy_avx;
     using cuda_experimental::align;
     using benchmark_helpers::make_sizes;
     using value_type = int;
@@ -16,7 +16,7 @@ TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
     constexpr std::size_t factor{2};
     constexpr std::size_t n{5};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    constexpr std::size_t block_alignment = alignof(cuda_experimental::cuda_memcpy::avx_block_type);
+    constexpr std::size_t block_alignment = alignof(cuda_experimental::cuda_copy::avx_block_type);
     static_assert(block_alignment%sizeof(value_type) == 0);
     static_assert(block_alignment/sizeof(value_type) > 2);
 
@@ -106,15 +106,14 @@ TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
     }
 }
 
-
 TEST_CASE("test_uninitialized_copyn_multithread", "[test_cuda_copy]"){
     using value_type = int;
     using host_alloc_type = std::allocator<value_type>;
-    using cuda_experimental::cuda_memcpy::uninitialized_copyn_multithread;
+    using cuda_experimental::cuda_copy::uninitialized_copyn_multithread;
     using benchmark_helpers::make_sizes;
-    constexpr std::size_t initial_size{1<<20};
+    constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
+    constexpr std::size_t n{20};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     constexpr std::size_t n_workers = 4;
     host_alloc_type alloc{};
@@ -138,11 +137,11 @@ TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
     // using pointer_type = typename allocator_type::pointer;
     // using const_pointer_type = typename allocator_type::const_pointer;
 
-    constexpr std::size_t initial_size{1<<20};
+    constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
+    constexpr std::size_t n{20};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    //{{1048576Ui64, 2097152Ui64, 4194304Ui64, 8388608Ui64, 16777216Ui64, 33554432Ui64, 67108864Ui64, 134217728Ui64, 268435456Ui64, 536870912Ui64}}
+    //{{1024Ui64, 2048Ui64, 4096Ui64, 8192Ui64, 16384Ui64, 32768Ui64, 65536Ui64, 131072Ui64, 262144Ui64, 524288Ui64, 1048576Ui64, 2097152Ui64, 4194304Ui64, 8388608Ui64, 16777216Ui64, 33554432Ui64, 67108864Ui64, 134217728Ui64, 268435456Ui64, 536870912Ui64}}
     device_alloc_type device_alloc{};
     host_alloc_type host_alloc{};
 
