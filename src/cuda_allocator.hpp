@@ -2,7 +2,6 @@
 #define CUDA_ALLOCATOR_HPP_
 
 #include "cuda_helpers.hpp"
-#include "cuda_pointer.hpp"
 
 namespace cuda_experimental{
 
@@ -30,7 +29,7 @@ public:
     void deallocate(pointer p, size_type){
         if (p){
             device_switcher switcher{p.device()};
-            cuda_error_check(cudaFree(ptr_to_void(p)));
+            cuda_error_check(cudaFree(p));
         }
     }
     bool operator==(const device_allocator& other)const{return true;}
@@ -64,7 +63,7 @@ public:
     }
     void deallocate(pointer p, size_type){
         if (p){
-            cuda_error_check(cudaFreeHost(ptr_to_void(p)));
+            cuda_error_check(cudaFreeHost(p));
         }
     }
     bool operator==(const locked_allocator& other)const{return flags == other.flags;}

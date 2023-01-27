@@ -1,12 +1,12 @@
 #include <numeric>
 #include "catch.hpp"
-#include "cuda_copy.hpp"
+#include "cuda_memory.hpp"
 #include "benchmark_helpers.hpp"
 
 
 TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
     using cuda_experimental::cuda_memcpy::memcpy_avx;
-    using cuda_experimental::cuda_memcpy::align;
+    using cuda_experimental::align;
     using benchmark_helpers::make_sizes;
     using value_type = int;
     using host_allocator_type = std::allocator<value_type>;
@@ -107,6 +107,26 @@ TEST_CASE("test_memcpy_avx","[test_memcpy_avx]"){
 }
 
 
+TEST_CASE("test_uninitialized_copyn_multithread", "[test_cuda_copy]"){
+    using value_type = int;
+    using host_alloc_type = std::allocator<value_type>;
+    using cuda_experimental::cuda_memcpy::uninitialized_copyn_multithread;
+    using benchmark_helpers::make_sizes;
+    constexpr std::size_t initial_size{1<<20};
+    constexpr std::size_t factor{2};
+    constexpr std::size_t n{10};
+    constexpr auto sizes = make_sizes<initial_size,factor,n>();
+    constexpr std::size_t n_workers = 4;
+    host_alloc_type alloc{};
+    for (const auto& size : sizes){
+        std::vector<value_type> src(size);
+        std::iota(src.begin(),src.end(),value_type{0});
+        auto dst = alloc.allocate(size);
+        uninitialized_copyn_multithread<n_workers>(src.begin(),size,dst);
+        REQUIRE(std::equal(src.begin(), src.end(), dst));
+        alloc.deallocate(dst,size);
+    }
+}
 
 TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
 {
@@ -126,35 +146,41 @@ TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
     device_alloc_type device_alloc{};
     host_alloc_type host_alloc{};
 
-    for (const auto& size : sizes){
-        auto device_ptr = device_alloc.allocate(size);
-        auto host_src_ptr = host_alloc.allocate(size);
-        auto host_dst_ptr = host_alloc.allocate(size);
-        std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
+    SECTION("pointers_rage_src"){
+        for (const auto& size : sizes){
+            auto device_ptr = device_alloc.allocate(size);
+            auto host_src_ptr = host_alloc.allocate(size);
+            auto host_dst_ptr = host_alloc.allocate(size);
+            std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
 
-        copy(host_src_ptr,host_src_ptr+size,device_ptr);
-        copy(device_ptr,device_ptr+size,host_dst_ptr);
+            copy(host_src_ptr,host_src_ptr+size,device_ptr);
+            copy(device_ptr,device_ptr+size,host_dst_ptr);
 
-        REQUIRE(std::equal(host_src_ptr, host_src_ptr+size , host_dst_ptr));
+            REQUIRE(std::equal(host_src_ptr, host_src_ptr+size , host_dst_ptr));
 
-        device_alloc.deallocate(device_ptr,size);
-        host_alloc.deallocate(host_src_ptr,size);
-        host_alloc.deallocate(host_dst_ptr,size);
+            device_alloc.deallocate(device_ptr,size);
+            host_alloc.deallocate(host_src_ptr,size);
+            host_alloc.deallocate(host_dst_ptr,size);
+        }
+    }
+
+    SECTION("iterastors_rage_src"){
+        for (const auto& size : sizes){
+            auto device_ptr = device_alloc.allocate(size);
+            std::vector<value_type> host_src(size);
+            std::vector<value_type> host_dst(size);
+            std:iota(host_src.begin(), host_src.end(),value_type{0});
+
+            copy(host_src.begin(),host_src.end(),device_ptr);
+            copy(device_ptr,device_ptr+size,host_dst.begin());
+
+            REQUIRE(std::equal(host_src.begin(), host_src.end() , host_dst.begin()));
+
+            device_alloc.deallocate(device_ptr,size);
+        }
     }
 
 
-    // SECTION("copy_host_device_iter"){
-    //     auto v = std::vector<value_type>(a,a+a_len);
-    //     auto v_copy = std::vector<value_type>(a_len);
-    //     copy(v.begin(),v.end(),dev_ptr);
-    //     SECTION("copy_from_dev_ptr"){
-    //         copy(dev_ptr,dev_ptr+a_len,v_copy.begin());
-    //     }
-    //     SECTION("copy_from_const_dev_ptr"){
-    //         copy(const_dev_ptr,const_dev_ptr+a_len,v_copy.begin());
-    //     }
-    //     REQUIRE(std::equal(v.begin(),v.end(),v_copy.begin()));
-    // }
     // SECTION("copy_device_device"){
     //     value_type a_copy[a_len]{};
     //     copy(a,a+a_len,dev_ptr);

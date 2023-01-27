@@ -14,13 +14,13 @@ using cuda_experimental::cuda_assert;
 template<typename T>
 void copy_baseline(const T* first, const T* last, device_pointer<T> d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    cuda_error_check(cudaMemcpyAsync(static_cast<void*>(d_first.get()), static_cast<const void*>(first), n, cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
+    cuda_error_check(cudaMemcpyAsync(d_first, first, n, cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
 }
 //device to host
 template<typename T>
 void copy_baseline(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
     auto n = distance(first,last)*sizeof(T);
-    cuda_error_check(cudaMemcpyAsync(static_cast<void*>(d_first), static_cast<const void*>(first.get()), n, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
+    cuda_error_check(cudaMemcpyAsync(d_first, first, n, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
 }
 
 }   //end of namespace benchmark_cuda_copy
@@ -39,7 +39,7 @@ TEST_CASE("benchmark_cuda_copy","[benchmark_cuda_copy]"){
 
     constexpr std::size_t initial_size{1<<20};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
+    constexpr std::size_t n{12};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     constexpr std::size_t iters_per_size{10};
 

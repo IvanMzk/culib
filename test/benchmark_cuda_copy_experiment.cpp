@@ -15,29 +15,41 @@ using cuda_experimental::cuda_assert;
 using cuda_experimental::cuda_memcpy::memcpy_avx;
 
 
-inline auto& memcpy_workers_pool(){
+inline auto& memcpy_workers_pool_v1(){
     static thread_pool::thread_pool_v1<void*(void*,const void*,std::size_t)> memcpy_pool{10, 10};
     return memcpy_pool;
 }
+inline auto& memcpy_workers_pool_v3(){
+    static thread_pool::thread_pool_v3 memcpy_pool{10, 10};
+    return memcpy_pool;
+}
 
-template<std::size_t>
+struct memcpy_pool_v1{
+    auto& operator()(){return memcpy_workers_pool_v1();}
+};
+struct memcpy_pool_v3{
+    auto& operator()(){return memcpy_workers_pool_v3();}
+};
+
+template<std::size_t, typename Pool>
 auto memcpy_multithread(void*, const void*, std::size_t, void*(*)(void*,const void*,std::size_t));
 template<>
-auto memcpy_multithread<1>(void* dst, const void* src, std::size_t n, void*(*impl)(void*,const void*,std::size_t)){
-    impl(dst,src,n);
-}
-template<std::size_t N>
+auto memcpy_multithread<1, memcpy_pool_v1>(void* dst, const void* src, std::size_t n, void*(*impl)(void*,const void*,std::size_t)){impl(dst,src,n);}
+template<>
+auto memcpy_multithread<1, memcpy_pool_v3>(void* dst, const void* src, std::size_t n, void*(*impl)(void*,const void*,std::size_t)){impl(dst,src,n);}
+template<std::size_t N, typename Pool>
 auto memcpy_multithread(void* dst, const void* src, std::size_t n, void*(*impl)(void*,const void*,std::size_t)){
     static_assert(N>1);
     if (n!=0){
-        std::array<std::remove_reference_t<decltype(memcpy_workers_pool())>::future_type, N-1> futures{};
         auto n_chunk = n/N;
         auto n_last_chunk = n_chunk + n%N;
         auto dst_ = reinterpret_cast<unsigned char*>(dst);
         auto src_ = reinterpret_cast<const unsigned char*>(src);
+        using future_type = decltype(Pool{}().push(impl,dst_,src_,n_chunk));
+        std::array<future_type, N-1> futures{};
         if (n_chunk){
             for (std::size_t i{0}; i!=N-1; ++i,dst_+=n_chunk,src_+=n_chunk){
-                futures[i] = memcpy_workers_pool().push(impl, dst_,src_,n_chunk);
+                futures[i] = Pool{}().push(impl, dst_,src_,n_chunk);
             }
         }
         impl(dst_,src_,n_last_chunk);
@@ -88,47 +100,47 @@ void copy_baseline(device_pointer<T> first, device_pointer<T> last, std::remove_
 //multithread copy
 inline constexpr std::size_t copy_workers = 4;
 //pageable locked
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(const T* first, const T* last, T* d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,std::memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,std::memcpy);
 }
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_avx_multithread(const T* first, const T* last, T* d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,memcpy_avx);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,memcpy_avx);
 }
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(const T* first, const T* last, locked_pointer<std::remove_const_t<T>> d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,host_memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,host_memcpy);
 }
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(locked_pointer<T> first, locked_pointer<T> last, std::remove_const_t<T>* d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,host_memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,host_memcpy);
 }
 //locked device
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(locked_pointer<T> first, locked_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,host_to_device_memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,host_to_device_memcpy);
 }
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(device_pointer<T> first, device_pointer<T> last, locked_pointer<std::remove_const_t<T>> d_first){
     auto n = distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,device_to_host_memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,device_to_host_memcpy);
 }
 //host device
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(const T* first, const T* last, device_pointer<std::remove_const_t<T>> d_first){
     auto n = std::distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,host_to_device_memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,host_to_device_memcpy);
 }
-template<typename T>
+template<typename Pool = memcpy_pool_v1, typename T>
 void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
     auto n = distance(first,last)*sizeof(T);
-    memcpy_multithread<copy_workers>(d_first,first,n,device_to_host_memcpy);
+    memcpy_multithread<copy_workers, Pool>(d_first,first,n,device_to_host_memcpy);
 }
 
 }   //end of namespace benchmark_cuda_copy_experiment
@@ -138,6 +150,8 @@ TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
     using cuda_experimental::cuda_memcpy::memcpy_avx;
     using benchmark_cuda_copy_experiment::copy_avx_multithread;
     using benchmark_cuda_copy_experiment::copy_multithread;
+    using benchmark_cuda_copy_experiment::memcpy_pool_v1;
+    using benchmark_cuda_copy_experiment::memcpy_pool_v3;
     using benchmark_helpers::make_sizes;
     using value_type = int;
     using host_allocator_type = std::allocator<value_type>;
@@ -146,11 +160,12 @@ TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
     using benchmark_helpers::size_to_str;
 
     host_allocator_type host_alloc{};
-    constexpr std::size_t initial_size{1000*1000+1};
+    //constexpr std::size_t initial_size{1000*1000+1};
+    constexpr std::size_t initial_size{1000+1};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{10};
+    constexpr std::size_t n{15};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    constexpr std::size_t iters_per_size{10};
+    constexpr std::size_t iters_per_size{30};
 
     for (const auto& size : sizes){
         float dt_baseline_memcpy_ms{0};
@@ -162,7 +177,7 @@ TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
             std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
             cpu_timer start_baseline_memcpy{};
             //std::memcpy(host_dst_ptr, host_src_ptr, n);
-            copy_multithread(host_src_ptr, host_src_ptr+size, host_dst_ptr);
+            copy_multithread<memcpy_pool_v1>(host_src_ptr, host_src_ptr+size, host_dst_ptr);
             cpu_timer stop_baseline_memcpy{};
             dt_baseline_memcpy_ms += stop_baseline_memcpy - start_baseline_memcpy;
             REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));
@@ -174,7 +189,8 @@ TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
             std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
             cpu_timer start_avx_memcpy{};
             //memcpy_avx(host_dst_ptr, host_src_ptr, n);
-            copy_avx_multithread(host_src_ptr, host_src_ptr+size, host_dst_ptr);
+            //copy_avx_multithread(host_src_ptr, host_src_ptr+size, host_dst_ptr);
+            copy_multithread<memcpy_pool_v3>(host_src_ptr, host_src_ptr+size, host_dst_ptr);
             cpu_timer stop_avx_memcpy{};
             dt_avx_memcpy_ms += stop_avx_memcpy - start_avx_memcpy;
             REQUIRE(std::equal(host_src_ptr, host_src_ptr+size, host_dst_ptr));

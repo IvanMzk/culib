@@ -1,4 +1,4 @@
-#include "cuda_copy.hpp"
+#include "cuda_memory.hpp"
 
 namespace cuda_experimental{
 namespace cuda_memcpy{

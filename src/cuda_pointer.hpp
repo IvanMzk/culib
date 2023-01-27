@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <iterator>
+#include <cstdint>
 
 namespace cuda_experimental{
 
@@ -105,15 +106,31 @@ auto operator<=(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){re
 
 template<typename T, template<typename> typename D>
 auto distance(const basic_pointer<T,D>& begin, const basic_pointer<T,D>& end){return end-begin;}
-template<typename T, template<typename> typename D>
-auto ptr_to_void(const basic_pointer<T,D>& p){return static_cast<std::conditional_t<std::is_const_v<T>,const void*,void*>>(p.get());}
-template<typename T>
-auto ptr_to_void(const T* p){return static_cast<const void*>(p);}
-template<typename T>
-auto ptr_to_void(T* p){return static_cast<void*>(p);}
-template<typename T, template<typename> typename D>
-auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(static_cast<const D<T>&>(p));}
 
+// template<typename T, template<typename> typename D>
+// auto ptr_to_void(const basic_pointer<T,D>& p){return static_cast<std::conditional_t<std::is_const_v<T>,const void*,void*>>(p.get());}
+// template<typename T>
+// auto ptr_to_void(const T* p){return static_cast<const void*>(p);}
+// template<typename T>
+// auto ptr_to_void(T* p){return static_cast<void*>(p);}
+// template<typename T, template<typename> typename D>
+// auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(static_cast<const D<T>&>(p));}
+
+//return aligned pointer that is nearest to p and greater or equal to p
+//A - required alignment in bytes
+template<std::size_t A>
+inline auto align(const void* p){
+    static_assert(A != 0);
+    static_assert((A&(A-1))  == 0);
+    return reinterpret_cast<const void *>((reinterpret_cast<std::uintptr_t>(p)+(A-1)) & ~(A-1));
+}
+template<std::size_t A>
+inline auto align(void* p){
+    return const_cast<void*>(align<A>(const_cast<const void*>(p)));
+}
+inline auto alignment(const void* p){
+   return (reinterpret_cast<std::uintptr_t>(p) & (~reinterpret_cast<std::uintptr_t>(p) + 1));
+}
 
 //pointer to device memory
 template<typename T>
@@ -163,9 +180,9 @@ public:
         basic_pointer{p},
         device_{device__}
     {}
-    operator device_pointer<const value_type>()const{return device_pointer<const value_type>{get(),device()};}
-    template<typename U>
-    explicit operator device_pointer<U>()const{return device_pointer<U>{reinterpret_cast<typename device_pointer<U>::pointer>(get()),device()};}
+    //operator device_pointer<const value_type>()const{return device_pointer<const value_type>{get(),device()};}
+    // template<typename U>
+    // explicit operator device_pointer<U>()const{return device_pointer<U>{reinterpret_cast<typename device_pointer<U>::pointer>(get()),device()};}
     using basic_pointer::operator=;
     auto operator*()const{return deref_helper(std::is_const<T>::type{});}
     auto operator[](difference_type i)const{return *(*this+i);}
@@ -185,13 +202,15 @@ public:
     using reference = T&;
     using const_reference = const T&;
 
-    locked_pointer() = default;
+    locked_pointer():
+        basic_pointer{nullptr}
+    {}
     explicit locked_pointer(pointer p):
         basic_pointer{p}
     {}
-    operator locked_pointer<const value_type>()const{return locked_pointer<const value_type>{get()};}
-    template<typename U>
-    explicit operator locked_pointer<U>()const{return locked_pointer<U>{reinterpret_cast<typename locked_pointer<U>::pointer>(get()),device()};}
+    //operator locked_pointer<const value_type>()const{return locked_pointer<const value_type>{get()};}
+    // template<typename U>
+    // explicit operator locked_pointer<U>()const{return locked_pointer<U>{reinterpret_cast<typename locked_pointer<U>::pointer>(get())};}
     using basic_pointer::operator=;
     auto& operator*()const{return *get();}
     auto& operator[](difference_type i)const{return *(*this+i);}

@@ -28,9 +28,9 @@ namespace benchmark_helpers{
     template<typename T>
     auto size_in_bytes(std::size_t n){return n*sizeof(T);}
     template<typename T>
-    auto size_in_mbytes(std::size_t n){return size_in_bytes<T>(n)/std::size_t{1000000};}
+    auto size_in_mbytes(std::size_t n){return size_in_bytes<T>(n)/double{1000000};}
     template<typename T>
-    auto size_in_gbytes(std::size_t n){return size_in_bytes<T>(n)/std::size_t{1000000000};}
+    auto size_in_gbytes(std::size_t n){return size_in_bytes<T>(n)/double{1000000000};}
 
     template<typename T>
     auto size_to_str(std::size_t n){
