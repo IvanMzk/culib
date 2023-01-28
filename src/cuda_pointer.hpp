@@ -106,7 +106,6 @@ auto operator<=(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){re
 
 template<typename T, template<typename> typename D>
 auto distance(const basic_pointer<T,D>& begin, const basic_pointer<T,D>& end){return end-begin;}
-
 // template<typename T, template<typename> typename D>
 // auto ptr_to_void(const basic_pointer<T,D>& p){return static_cast<std::conditional_t<std::is_const_v<T>,const void*,void*>>(p.get());}
 // template<typename T>
@@ -188,6 +187,11 @@ public:
     auto operator[](difference_type i)const{return *(*this+i);}
     auto device()const{return device_;}
 };
+
+template<typename T>
+auto operator==(const device_pointer<T>& lhs, const device_pointer<T>& rhs){return lhs - rhs == typename device_pointer<T>::difference_type(0) && lhs.device() == rhs.device();}
+template<typename T>
+auto operator!=(const device_pointer<T>& lhs, const device_pointer<T>& rhs){return !(lhs == rhs);}
 
 //pointer to page-locked host memory
 template<typename T>

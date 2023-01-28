@@ -127,12 +127,16 @@ TEST_CASE("test_uninitialized_copyn_multithread", "[test_cuda_copy]"){
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
+TEMPLATE_TEST_CASE("test_cuda_copier","[test_cuda_copy]",
+    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::native_copier_tag>,std::size_t>),
+    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::multithread_copier_tag>,std::size_t>)
+)
 {
-    using value_type = typename TestType;
+    using copier_type = std::tuple_element_t<0,TestType>;
+    using value_type = std::tuple_element_t<1,TestType>;
     using device_alloc_type = cuda_experimental::device_allocator<value_type>;
     using host_alloc_type = std::allocator<value_type>;
-    using cuda_experimental::copy;
+    //using cuda_experimental::copy;
     using benchmark_helpers::make_sizes;
     // using pointer_type = typename allocator_type::pointer;
     // using const_pointer_type = typename allocator_type::const_pointer;
@@ -152,9 +156,11 @@ TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
             auto host_dst_ptr = host_alloc.allocate(size);
             std::iota(host_src_ptr, host_src_ptr+size, value_type{0});
 
-            copy(host_src_ptr,host_src_ptr+size,device_ptr);
-            copy(device_ptr,device_ptr+size,host_dst_ptr);
+            auto res_hd = copier_type::copy(host_src_ptr,host_src_ptr+size,device_ptr);
+            auto res_dh = copier_type::copy(device_ptr,device_ptr+size,host_dst_ptr);
 
+            REQUIRE(res_hd == device_ptr+size);
+            REQUIRE(res_dh == host_dst_ptr+size);
             REQUIRE(std::equal(host_src_ptr, host_src_ptr+size , host_dst_ptr));
 
             device_alloc.deallocate(device_ptr,size);
@@ -170,9 +176,11 @@ TEMPLATE_TEST_CASE("test_cuda_copy","[test_cuda_copy]", std::size_t)
             std::vector<value_type> host_dst(size);
             std:iota(host_src.begin(), host_src.end(),value_type{0});
 
-            copy(host_src.begin(),host_src.end(),device_ptr);
-            copy(device_ptr,device_ptr+size,host_dst.begin());
+            auto res_hd = copier_type::copy(host_src.begin(),host_src.end(),device_ptr);
+            auto res_dh = copier_type::copy(device_ptr,device_ptr+size,host_dst.begin());
 
+            REQUIRE(res_hd == device_ptr+size);
+            REQUIRE(res_dh == host_dst.begin()+size);
             REQUIRE(std::equal(host_src.begin(), host_src.end() , host_dst.begin()));
 
             device_alloc.deallocate(device_ptr,size);

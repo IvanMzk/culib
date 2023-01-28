@@ -91,6 +91,8 @@
         "__string": "cpp",
         "queue": "cpp",
         "codecvt": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "__functional_base_03": "cpp",
+        "string_view": "cpp"
     }
 }
