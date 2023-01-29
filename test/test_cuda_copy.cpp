@@ -127,7 +127,7 @@ TEST_CASE("test_uninitialized_copyn_multithread", "[test_cuda_copy]"){
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_copier","[test_cuda_copy]",
+TEMPLATE_TEST_CASE("test_cuda_copier_host_device","[test_cuda_copy]",
     (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::native_copier_tag>,std::size_t>),
     (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::multithread_copier_tag>,std::size_t>)
 )
@@ -136,10 +136,7 @@ TEMPLATE_TEST_CASE("test_cuda_copier","[test_cuda_copy]",
     using value_type = std::tuple_element_t<1,TestType>;
     using device_alloc_type = cuda_experimental::device_allocator<value_type>;
     using host_alloc_type = std::allocator<value_type>;
-    //using cuda_experimental::copy;
     using benchmark_helpers::make_sizes;
-    // using pointer_type = typename allocator_type::pointer;
-    // using const_pointer_type = typename allocator_type::const_pointer;
 
     constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
@@ -186,80 +183,81 @@ TEMPLATE_TEST_CASE("test_cuda_copier","[test_cuda_copy]",
             device_alloc.deallocate(device_ptr,size);
         }
     }
-
-
-    // SECTION("copy_device_device"){
-    //     value_type a_copy[a_len]{};
-    //     copy(a,a+a_len,dev_ptr);
-    //     auto dev_ptr_copy = allocator.allocate(a_len);
-    //     SECTION("copy_from_dev_ptr"){
-    //         copy(dev_ptr,dev_ptr+a_len,dev_ptr_copy);
-    //         copy(dev_ptr_copy,dev_ptr_copy+a_len,a_copy);
-    //     }
-    //     SECTION("copy_from_const_dev_ptr"){
-    //         copy(const_dev_ptr,const_dev_ptr+a_len,dev_ptr_copy);
-    //         copy(const_dev_ptr,const_dev_ptr+a_len,a_copy);
-    //     }
-    //     REQUIRE(std::equal(a,a+a_len,a_copy));
-    //     allocator.deallocate(dev_ptr_copy,a_len);
-    // }
 }
 
-// TEMPLATE_TEST_CASE("test_copy","[test_cuda_memory]",
-//     cuda_experimental::device_allocator<float>,
-//     (cuda_experimental::device_allocator<test_cuda_memory::test_array<std::size_t,5>>)
-// )
-// {
-//     using allocator_type = TestType;
-//     using value_type = typename allocator_type::value_type;
-//     using cuda_experimental::copy;
-//     using pointer_type = typename allocator_type::pointer;
-//     using const_pointer_type = typename allocator_type::const_pointer;
+TEMPLATE_TEST_CASE("test_cuda_copier_device_device","[test_cuda_copy]",
+    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::native_copier_tag>,std::size_t>),
+    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::multithread_copier_tag>,std::size_t>)
+)
+{
+    using copier_type = std::tuple_element_t<0,TestType>;
+    using value_type = std::tuple_element_t<1,TestType>;
+    using device_alloc_type = cuda_experimental::device_allocator<value_type>;
+    using host_alloc_type = std::allocator<value_type>;
+    using benchmark_helpers::make_sizes;
 
-//     auto allocator = allocator_type{};
-//     constexpr std::size_t n{100};
-//     auto dev_ptr = allocator.allocate(n);
-//     auto const_dev_ptr = const_pointer_type{dev_ptr};
-//     constexpr std::size_t a_len{10};
-//     value_type a[a_len] = {value_type(1),value_type(2),value_type(3),value_type(4),value_type(5),value_type(6),value_type(7),value_type(8),value_type(9),value_type(10)};
+    constexpr std::size_t initial_size{1<<10};
+    constexpr std::size_t factor{2};
+    constexpr std::size_t n{20};
+    constexpr auto sizes = make_sizes<initial_size,factor,n>();
+    //{{1024Ui64, 2048Ui64, 4096Ui64, 8192Ui64, 16384Ui64, 32768Ui64, 65536Ui64, 131072Ui64, 262144Ui64, 524288Ui64, 1048576Ui64, 2097152Ui64, 4194304Ui64, 8388608Ui64, 16777216Ui64, 33554432Ui64, 67108864Ui64, 134217728Ui64, 268435456Ui64, 536870912Ui64}}
+    device_alloc_type device_alloc{};
+    host_alloc_type host_alloc{};
 
-//     SECTION("copy_host_device"){
-//         value_type a_copy[a_len]{};
-//         copy(a,a+a_len,dev_ptr);
-//         SECTION("copy_from_dev_ptr"){
-//             copy(dev_ptr,dev_ptr+a_len,a_copy);
-//         }
-//         SECTION("copy_from_const_dev_ptr"){
-//             copy(const_dev_ptr,const_dev_ptr+a_len,a_copy);
-//         }
-//         REQUIRE(std::equal(a,a+a_len,a_copy));
-//     }
-//     SECTION("copy_host_device_iter"){
-//         auto v = std::vector<value_type>(a,a+a_len);
-//         auto v_copy = std::vector<value_type>(a_len);
-//         copy(v.begin(),v.end(),dev_ptr);
-//         SECTION("copy_from_dev_ptr"){
-//             copy(dev_ptr,dev_ptr+a_len,v_copy.begin());
-//         }
-//         SECTION("copy_from_const_dev_ptr"){
-//             copy(const_dev_ptr,const_dev_ptr+a_len,v_copy.begin());
-//         }
-//         REQUIRE(std::equal(v.begin(),v.end(),v_copy.begin()));
-//     }
-//     SECTION("copy_device_device"){
-//         value_type a_copy[a_len]{};
-//         copy(a,a+a_len,dev_ptr);
-//         auto dev_ptr_copy = allocator.allocate(a_len);
-//         SECTION("copy_from_dev_ptr"){
-//             copy(dev_ptr,dev_ptr+a_len,dev_ptr_copy);
-//             copy(dev_ptr_copy,dev_ptr_copy+a_len,a_copy);
-//         }
-//         SECTION("copy_from_const_dev_ptr"){
-//             copy(const_dev_ptr,const_dev_ptr+a_len,dev_ptr_copy);
-//             copy(const_dev_ptr,const_dev_ptr+a_len,a_copy);
-//         }
-//         REQUIRE(std::equal(a,a+a_len,a_copy));
-//         allocator.deallocate(dev_ptr_copy,a_len);
-//     }
-//     allocator.deallocate(dev_ptr,n);
-// }
+    SECTION("copy_same_device"){
+        for (const auto& size : sizes){
+            auto host_src = host_alloc.allocate(size);
+            auto host_dst = host_alloc.allocate(size);
+            auto device0_src = device_alloc.allocate(size);
+            auto device0_dst = device_alloc.allocate(size);
+            std::iota(host_src, host_src+size,value_type{0});
+            //host_src -> device0_src -> device0_dst -> host_dst
+            auto res_hd = copier_type::copy(host_src,host_src+size,device0_src);
+            auto res_dd = copier_type::copy(device0_src,device0_src+size,device0_dst);
+            auto res_dh = copier_type::copy(device0_dst,device0_dst+size,host_dst);
+
+            REQUIRE(res_hd == device0_src+size);
+            REQUIRE(res_dd == device0_dst+size);
+            REQUIRE(res_dh == host_dst+size);
+            REQUIRE(std::equal(host_src, host_src+size, host_dst));
+
+            host_alloc.deallocate(host_src,size);
+            host_alloc.deallocate(host_dst,size);
+            device_alloc.deallocate(device0_src,size);
+            device_alloc.deallocate(device0_dst,size);
+        }
+    }
+
+    SECTION("copy_peer_device"){
+        using cuda_experimental::cuda_get_device_count;
+        using cuda_experimental::cuda_get_device;
+        using cuda_experimental::cuda_set_device;
+        if (cuda_get_device_count() > 1){
+            constexpr int device0_id = 0;
+            constexpr int device1_id = 1;
+            for (const auto& size : sizes){
+                auto host_src = host_alloc.allocate(size);
+                auto host_dst = host_alloc.allocate(size);
+                std::iota(host_src, host_src+size,value_type{0});
+                cuda_set_device(device0_id);
+                auto device0_src = device_alloc.allocate(size);
+                cuda_set_device(device1_id);
+                auto device1_dst = device_alloc.allocate(size);
+                //host_src -> device0_src -> device1_dst -> host_dst
+                auto res_hd = copier_type::copy(host_src,host_src+size,device0_src);
+                auto res_dd = copier_type::copy(device0_src,device0_src+size,device1_dst);
+                auto res_dh = copier_type::copy(device1_dst,device1_dst+size,host_dst);
+
+                REQUIRE(res_hd == device0_src+size);
+                REQUIRE(res_dd == device1_dst+size);
+                REQUIRE(res_dh == host_dst+size);
+                REQUIRE(std::equal(host_src, host_src+size, host_dst));
+
+                host_alloc.deallocate(host_src,size);
+                host_alloc.deallocate(host_dst,size);
+                device_alloc.deallocate(device0_src,size);
+                device_alloc.deallocate(device1_dst,size);
+            }
+        }
+    }
+}

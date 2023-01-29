@@ -40,6 +40,7 @@ inline constexpr std::size_t locked_pool_size = 8;
 inline constexpr std::size_t locked_buffer_size = 64*1024*1024;
 inline constexpr std::size_t locked_buffer_alignment = 4096;   //every buffer in locked pool must be aligned at least at locked_buffer_alignment, 0 - no alignment check
 inline constexpr std::size_t multithread_threshold = 4*1024*1024;
+inline constexpr std::size_t peer_multithread_threshold = 128*1024*1024;
 
 template<typename Alloc, std::size_t Alignment = 0>
 class cuda_uninitialized_memory
@@ -237,6 +238,16 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     return d_first;
 }
 
+//device to device
+//assume UVA
+//to copy to peer without staging cudaDeviceEnablePeerAccess should be called beforehand
+template<typename T>
+static auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
+    auto n = std::distance(first,last);
+    cuda_error_check(cudaMemcpyAsync(d_first, first, n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToDevice, cuda_stream{}));
+    return d_first+n;
+}
+
 };  //end of struct copier<native_copier_tag>{
 
 template<>
@@ -361,6 +372,34 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
         return copier<native_copier_tag>::copy(first,last,d_first);
     }
 }
+//device device copy
+template<typename T>
+static auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
+    auto n = std::distance(first,last);
+    auto n_bytes = n*sizeof(T);
+    if (n_bytes>cuda_copy::peer_multithread_threshold && first.device()!=d_first.device()){
+        auto src = reinterpret_cast<const std::byte*>(first.get());
+        auto dst = reinterpret_cast<std::byte*>(d_first.get());
+        using future_type = decltype(cuda_copy::copy_pool().push(cuda_copy::dma_to_device, dst, cuda_copy::locked_pool().pop(), cuda_copy::locked_buffer_size));
+        future_type async_future{};
+        for (; n_bytes>=cuda_copy::locked_buffer_size; n_bytes-=cuda_copy::locked_buffer_size, src+=cuda_copy::locked_buffer_size,dst+=cuda_copy::locked_buffer_size){
+            auto buf = cuda_copy::locked_pool().pop();
+            cuda_error_check(cudaMemcpyAsync(buf.get().data(), src, cuda_copy::locked_buffer_size, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));   //sync copy src device to locked
+            if (async_future){async_future.wait();}
+            async_future = cuda_copy::copy_pool().push_async(cuda_copy::dma_to_device, dst, buf, cuda_copy::locked_buffer_size);   //async dma transfer locked to device
+        }
+        if (n_bytes){
+            auto buf = cuda_copy::locked_pool().pop();
+            cuda_error_check(cudaMemcpyAsync(buf.get().data(), src, n_bytes, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));   //sync copy src device to locked
+            if (async_future){async_future.wait();}
+            async_future = cuda_copy::copy_pool().push_async(cuda_copy::dma_to_device, dst, buf, n_bytes);   //async dma transfer locked to device
+        }
+        if (async_future){async_future.wait();}
+        return d_first+n;
+    }else{  //use native implementation if copy to same device or less than threshold
+        return copier<native_copier_tag>::copy(first,last,d_first);
+    }
+}
 
 };  //end of struct copier<multithread_copier_tag>{
 
@@ -384,8 +423,11 @@ template<typename T, typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> 
 auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
 }
-
-
+//device device
+template<typename T>
+auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
+    return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
+}
 
 }   //end of namespace cuda_experimental
 
