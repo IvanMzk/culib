@@ -106,15 +106,6 @@ auto operator<=(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){re
 
 template<typename T, template<typename> typename D>
 auto distance(const basic_pointer<T,D>& begin, const basic_pointer<T,D>& end){return end-begin;}
-// template<typename T, template<typename> typename D>
-// auto ptr_to_void(const basic_pointer<T,D>& p){return static_cast<std::conditional_t<std::is_const_v<T>,const void*,void*>>(p.get());}
-// template<typename T>
-// auto ptr_to_void(const T* p){return static_cast<const void*>(p);}
-// template<typename T>
-// auto ptr_to_void(T* p){return static_cast<void*>(p);}
-// template<typename T, template<typename> typename D>
-// auto ptr_to_const(const basic_pointer<T,D>& p){return static_cast<D<const T>>(static_cast<const D<T>&>(p));}
-
 //return aligned pointer that is nearest to p and greater or equal to p
 //A - required alignment in bytes
 template<std::size_t A>

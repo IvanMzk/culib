@@ -200,7 +200,6 @@ TEMPLATE_TEST_CASE("test_cuda_copier_device_device","[test_cuda_copy]",
     constexpr std::size_t factor{2};
     constexpr std::size_t n{20};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    //{{1024Ui64, 2048Ui64, 4096Ui64, 8192Ui64, 16384Ui64, 32768Ui64, 65536Ui64, 131072Ui64, 262144Ui64, 524288Ui64, 1048576Ui64, 2097152Ui64, 4194304Ui64, 8388608Ui64, 16777216Ui64, 33554432Ui64, 67108864Ui64, 134217728Ui64, 268435456Ui64, 536870912Ui64}}
     device_alloc_type device_alloc{};
     host_alloc_type host_alloc{};
 
@@ -259,5 +258,36 @@ TEMPLATE_TEST_CASE("test_cuda_copier_device_device","[test_cuda_copy]",
                 device_alloc.deallocate(device1_dst,size);
             }
         }
+    }
+}
+
+TEMPLATE_TEST_CASE("test_cuda_fill", "[test_cuda_copy]",
+    float
+)
+{
+    using value_type = TestType;
+    using device_alloc_type = cuda_experimental::device_allocator<value_type>;
+    using host_alloc_type = std::allocator<value_type>;
+    using benchmark_helpers::make_sizes;
+    using cuda_experimental::fill;
+    using cuda_experimental::copy;
+
+    constexpr std::size_t initial_size{1<<10};
+    constexpr std::size_t factor{2};
+    constexpr std::size_t n{20};
+    constexpr auto sizes = make_sizes<initial_size,factor,n>();
+    device_alloc_type device_alloc{};
+    host_alloc_type host_alloc{};
+    value_type v{11.0f};
+
+    for (const auto& size : sizes){
+        auto host_ptr = host_alloc.allocate(size);
+        auto device_ptr = device_alloc.allocate(size);
+        std::vector<value_type> expected(size, v);
+        fill(device_ptr, device_ptr+size, v);
+        copy(device_ptr, device_ptr+size, host_ptr);
+        REQUIRE(std::equal(host_ptr, host_ptr+size, expected.begin()));
+        host_alloc.deallocate(host_ptr,size);
+        device_alloc.deallocate(device_ptr,size);
     }
 }
