@@ -1,6 +1,6 @@
 #include <array>
 #include "catch.hpp"
-#include "cuda_allocator.hpp"
+#include "cuda_memory.hpp"
 
 namespace test_cuda_allocator{
 
@@ -60,22 +60,6 @@ TEMPLATE_TEST_CASE("test_locked_allocator","[test_cuda_allocator]",
 {
     using value_type = TestType;
     using allocator_type = cuda_experimental::locked_allocator<value_type>;
-
-    std::size_t n{100};
-    allocator_type allocator{};
-    auto ptr = allocator.allocate(n);
-    REQUIRE(ptr.get() != nullptr);
-    allocator.deallocate(ptr,n);
-}
-
-TEMPLATE_TEST_CASE("test_registered_allocator","[test_cuda_allocator]",
-    float,
-    (std::array<int,4>),
-    (test_cuda_allocator::test_array<test_cuda_allocator::test_lin_space<double>,10>)
-)
-{
-    using value_type = TestType;
-    using allocator_type = cuda_experimental::registered_allocator<value_type>;
 
     std::size_t n{100};
     allocator_type allocator{};

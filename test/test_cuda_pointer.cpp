@@ -18,34 +18,6 @@ public:
         basic_pointer(p)
     {}
 };
-
-template<typename T, std::size_t N>
-class test_array
-{
-    T elements_[N]{};
-public:
-    test_array() = default;
-    explicit test_array(const T& v){
-        std::fill_n(elements_,N,v);
-    }
-    constexpr std::size_t size()const{return N;}
-    bool operator==(const test_array& other){return std::equal(elements_,elements_+N, other.elements_);}
-};
-
-template<typename T>
-class test_lin_space
-{
-    T min_;
-    T max_;
-    std::size_t points_number_;
-public:
-    test_lin_space(const T& min__, const T& max__, std::size_t points_number__):
-        min_{min__},
-        max_{max__},
-        points_number_{points_number__}
-    {}
-};
-
 }   //end of namespace test_cuda_memory
 
 TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",

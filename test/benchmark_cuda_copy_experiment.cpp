@@ -1,7 +1,6 @@
 #include <numeric>
 #include <mmintrin.h>
 #include "catch.hpp"
-//#include "cuda_memcpy.hpp"
 #include "cuda_copy.hpp"
 #include "benchmark_helpers.hpp"
 
@@ -13,10 +12,10 @@ using cuda_experimental::locked_pointer;
 using cuda_experimental::is_basic_pointer_v;
 using cuda_experimental::cuda_stream;
 using cuda_experimental::cuda_assert;
-using cuda_experimental::cuda_memcpy::memcpy_avx;
-using cuda_experimental::cuda_memcpy::locked_pool;
-using cuda_experimental::cuda_memcpy::locked_buffer_size;
-using cuda_experimental::cuda_memcpy::locked_uninitialized_memory;
+using cuda_experimental::cuda_copy::memcpy_avx;
+using cuda_experimental::cuda_copy::locked_pool;
+using cuda_experimental::cuda_copy::locked_buffer_size;
+using cuda_experimental::cuda_copy::locked_uninitialized_memory;
 
 inline auto& memcpy_workers_pool_v1(){
     static thread_pool::thread_pool_v1<void*(void*,const void*,std::size_t)> memcpy_pool{10, 10};
@@ -211,7 +210,7 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 
 
 // TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
-//     using cuda_experimental::cuda_memcpy::memcpy_avx;
+//     using cuda_experimental::cuda_copy::memcpy_avx;
 //     using benchmark_cuda_copy_experiment::copy_avx_multithread;
 //     using benchmark_cuda_copy_experiment::copy_multithread;
 //     using benchmark_cuda_copy_experiment::memcpy_pool_v1;

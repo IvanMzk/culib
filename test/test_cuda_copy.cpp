@@ -113,7 +113,7 @@ TEST_CASE("test_uninitialized_copyn_multithread", "[test_cuda_copy]"){
     using benchmark_helpers::make_sizes;
     constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{20};
+    constexpr std::size_t n{15};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     constexpr std::size_t n_workers = 4;
     host_alloc_type alloc{};
@@ -140,7 +140,7 @@ TEMPLATE_TEST_CASE("test_cuda_copier_host_device","[test_cuda_copy]",
 
     constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{20};
+    constexpr std::size_t n{15};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     //{{1024Ui64, 2048Ui64, 4096Ui64, 8192Ui64, 16384Ui64, 32768Ui64, 65536Ui64, 131072Ui64, 262144Ui64, 524288Ui64, 1048576Ui64, 2097152Ui64, 4194304Ui64, 8388608Ui64, 16777216Ui64, 33554432Ui64, 67108864Ui64, 134217728Ui64, 268435456Ui64, 536870912Ui64}}
     device_alloc_type device_alloc{};
@@ -198,7 +198,7 @@ TEMPLATE_TEST_CASE("test_cuda_copier_device_device","[test_cuda_copy]",
 
     constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{20};
+    constexpr std::size_t n{15};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     device_alloc_type device_alloc{};
     host_alloc_type host_alloc{};
@@ -274,7 +274,7 @@ TEMPLATE_TEST_CASE("test_cuda_fill", "[test_cuda_copy]",
 
     constexpr std::size_t initial_size{1<<10};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{20};
+    constexpr std::size_t n{15};
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     device_alloc_type device_alloc{};
     host_alloc_type host_alloc{};

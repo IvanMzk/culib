@@ -12,21 +12,16 @@ target_link_libraries(Test_selected PRIVATE cudart_static.lib)
 target_link_options(Test_selected PRIVATE /STACK:104857600)
 
 target_sources(Test PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_helpers.cpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_experimental.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_aware_storage.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_copy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_experimental_copy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/experimental_ptr_alloc_copy.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_cuda_copy_experiment.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_pointer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_cuda_copy.cpp
 )
 
 target_sources(Test_selected PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_allocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_pointer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_copy.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
