@@ -74,14 +74,14 @@ TEMPLATE_TEST_CASE("test_cuda_storage_n_value_constructor","[test_cuda_storage]"
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_storage_host_range_constructor","[test_cuda_storage]",
+TEMPLATE_TEST_CASE("test_cuda_storage_pointers_range_constructor","[test_cuda_storage]",
     (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
-    using value_type = typename storage_type::value_type;
+    using value_type = storage_type::value_type;
 
-    SECTION("pointers_range"){
+    SECTION("host_pointers_range"){
         value_type host_data[]{1,2,3,4,5,6,7,8,9,10};
         constexpr std::size_t n{sizeof(host_data)/sizeof(value_type)};
         SECTION("not_empty_range"){
@@ -96,19 +96,72 @@ TEMPLATE_TEST_CASE("test_cuda_storage_host_range_constructor","[test_cuda_storag
             REQUIRE(cuda_storage.empty());
         }
     }
-    SECTION("not_pointer_iter"){
-        auto host_data = std::list<value_type>{1,2,3,4,5,6,7,8,9,10};
+
+    SECTION("cuda_pointers_range"){
+        auto expected = storage_type{1,2,3,4,5,6,7,8,9,10};
         SECTION("not_empty_range"){
-            auto cuda_storage = storage_type(host_data.begin(), host_data.end());
-            REQUIRE(cuda_storage.size() == host_data.size());
-            REQUIRE(!cuda_storage.empty());
-            REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), host_data.begin()));
+            auto result = storage_type(expected.begin(),expected.end());
+            REQUIRE(result.size() == expected.size());
+            REQUIRE(!result.empty());
+            REQUIRE(expected.data() != result.data());
+            REQUIRE(std::equal(expected.begin(), expected.end(), result.begin()));
         }
         SECTION("empty_range"){
-            auto cuda_storage = storage_type(host_data.begin(), host_data.begin());
-            REQUIRE(cuda_storage.size() == 0);
-            REQUIRE(cuda_storage.empty());
+            auto result = storage_type(expected.begin(),expected.begin());
+            REQUIRE(result.size() == 0);
+            REQUIRE(result.empty());
         }
+    }
+
+    SECTION("cuda_peer_pointers_range"){
+        using cuda_experimental::cuda_set_device;
+        using cuda_experimental::cuda_get_device_count;
+        if (cuda_get_device_count() > 1){
+            constexpr int expected_device_id = 1;
+            constexpr int result_device_id = 0;
+            cuda_set_device(expected_device_id);
+            auto expected = storage_type{1,2,3,4,5,6,7,8,9,10};
+            REQUIRE(expected.begin().device() == expected_device_id);
+            REQUIRE(expected.end().device() == expected_device_id);
+            SECTION("not_empty_range"){
+                cuda_set_device(result_device_id);
+                auto result = storage_type(expected.begin(),expected.end());
+                REQUIRE(result.begin().device() == result_device_id);
+                REQUIRE(result.end().device() == result_device_id);
+                REQUIRE(result.size() == expected.size());
+                REQUIRE(!result.empty());
+                REQUIRE(std::equal(expected.begin(), expected.end(), result.begin()));
+            }
+            SECTION("empty_range"){
+                cuda_set_device(result_device_id);
+                auto result = storage_type(expected.begin(),expected.begin());
+                REQUIRE(result.size() == 0);
+                REQUIRE(result.empty());
+            }
+        }
+    }
+}
+
+TEMPLATE_TEST_CASE("test_cuda_storage_std_iterators_range_constructor","[test_cuda_storage]",
+    std::vector<float>,
+    std::list<float>
+)
+{
+    using container_type = TestType;
+    using value_type = container_type::value_type;
+    using storage_type = cuda_experimental::cuda_storage<value_type, cuda_experimental::device_allocator<value_type>>;
+
+    auto expected = container_type{1,2,3,4,5,6,7,8,9,10};
+    SECTION("not_empty_range"){
+        auto cuda_storage = storage_type(expected.begin(), expected.end());
+        REQUIRE(cuda_storage.size() == expected.size());
+        REQUIRE(!cuda_storage.empty());
+        REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), expected.begin()));
+    }
+    SECTION("empty_range"){
+        auto cuda_storage = storage_type(expected.begin(), expected.begin());
+        REQUIRE(cuda_storage.size() == 0);
+        REQUIRE(cuda_storage.empty());
     }
 }
 
@@ -240,24 +293,5 @@ TEMPLATE_TEST_CASE("test_cuda_storage_move_assignment","[test_cuda_storage]",
     REQUIRE(cuda_storage.size() == 0);
     REQUIRE(cuda_storage.empty());
 }
-
-// TEST_CASE("test_cuda_storage_device_range_constructor","[test_cuda_storage]"){
-//     using value_type = float;
-//     using storage_type = cuda_experimental::cuda_storage<value_type>;
-
-//     auto cuda_storage = storage_type({1,2,3,4,5,6,7,8,9,10});
-//     SECTION("not_empty_range"){
-//         auto storage_from_device_range = storage_type(cuda_storage.begin()+1,cuda_storage.end()-1);
-//         REQUIRE(storage_from_device_range.size() == 8);
-//         REQUIRE(!storage_from_device_range.empty());
-//     }
-//     SECTION("empty_range"){
-//         auto storage_from_device_range = storage_type(cuda_storage.begin(),cuda_storage.begin());
-//         REQUIRE(storage_from_device_range.size() == 0);
-//         REQUIRE(storage_from_device_range.empty());
-//     }
-// }
-
-
 
 

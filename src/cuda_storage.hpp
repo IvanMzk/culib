@@ -77,7 +77,7 @@ public:
     {
         fill(begin_, begin_+size_, v);
     }
-    //construct storage from host iterators range
+    //construct storage from iterators range
     template<typename It, std::enable_if_t<detail::is_iterator<It>,int> =0 >
     cuda_storage(It first, It last, const allocator_type& alloc = allocator_type()):
         allocator_{alloc},
@@ -93,14 +93,6 @@ public:
         begin_{allocate(size_)}
     {
         copy(init_data.begin(),init_data.end(),begin_);
-    }
-    //construct storage from cuda aware pointers range, if storage allocates on device it use current active device of calling thread
-    cuda_storage(const_pointer first, const_pointer last, const allocator_type& alloc = allocator_type()):
-        allocator_{alloc},
-        size_{distance(first,last)},
-        begin_{allocate(size_)}
-    {
-        copy(first,last,begin_);
     }
 
     auto data(){return begin_;}

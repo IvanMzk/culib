@@ -46,7 +46,7 @@ template<typename Alloc, std::size_t Alignment = 0>
 class cuda_uninitialized_memory
 {
 public:
-    static_assert(Alignment==0 || (Alignment&(Alignment-1))==0);
+    static_assert(Alignment==0 || (Alignment&(Alignment-1))==0);    //must be zero or pow of 2
     using allocator_type = Alloc;
     using value_type = typename allocator_type::value_type;
     using pointer = typename allocator_type::pointer;
