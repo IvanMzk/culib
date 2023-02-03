@@ -170,6 +170,7 @@ public:
         basic_pointer{p},
         device_{device__}
     {}
+    explicit operator device_pointer<const value_type>()const{return device_pointer<const value_type>{get(),device()};}
     using basic_pointer::operator=;
     auto operator*()const{return deref_helper(std::is_const<T>::type{});}
     auto operator[](difference_type i)const{return *(*this+i);}
@@ -200,6 +201,7 @@ public:
     explicit locked_pointer(pointer p):
         basic_pointer{p}
     {}
+    explicit operator locked_pointer<const value_type>()const{return locked_pointer<const value_type>{get()};}
     using basic_pointer::operator=;
     auto& operator*()const{return *get();}
     auto& operator[](difference_type i)const{return *(*this+i);}

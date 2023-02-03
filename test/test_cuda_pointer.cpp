@@ -145,6 +145,12 @@ TEMPLATE_TEST_CASE("test_device_pointer","[test_cuda_memory]",
     REQUIRE(ptr_dev.device() == device);
     copy(expected.begin(), expected.end(), ptr_dev);
 
+    SECTION("device_pointer_conversion"){
+        auto cp = static_cast<device_allocator_type::const_pointer>(ptr_dev);
+        REQUIRE(cp.get() == ptr_dev.get());
+        REQUIRE(cp.device() == ptr_dev.device());
+    }
+
     SECTION("device_pointer_asignment"){
         device_pointer<value_type> p{};
         p = ptr_dev;

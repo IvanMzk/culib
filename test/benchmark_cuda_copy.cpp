@@ -61,6 +61,7 @@ TEMPLATE_TEST_CASE("benchmark_cuda_host_device_copier","[benchmark_cuda_copy]",
 
     SECTION("host_iterator"){
         using container_type = std::vector<value_type>;
+        //using container_type = std::list<value_type>;
         std::cout<<std::endl<<"benchmark_cuda_copier_iterator "<<typeid(copier_type).name();
         for (const auto& size : sizes){
             float dt_ms_to_device{0};
@@ -79,7 +80,7 @@ TEMPLATE_TEST_CASE("benchmark_cuda_host_device_copier","[benchmark_cuda_copy]",
                 copier_type::copy(device_ptr, device_ptr+size, host_dst.begin());
                 cuda_timer stop_to_host{};
                 dt_ms_to_host += stop_to_host - start_to_host;
-                //REQUIRE(std::equal(host_src.begin(), host_src.end(), host_dst.begin()));
+                REQUIRE(std::equal(host_src.begin(), host_src.end(), host_dst.begin()));
                 device_alloc.deallocate(device_ptr,size);
             }
             std::cout<<std::endl<<size_to_str<value_type>(size)<<" to_device "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_device)<<

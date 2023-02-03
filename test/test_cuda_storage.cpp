@@ -1,7 +1,7 @@
 #include <vector>
 #include <list>
 #include "catch.hpp"
-#include "cuda_aware_storage.hpp"
+#include "cuda_storage.hpp"
 
 TEST_CASE("test_is_iterator","[test_tensor]"){
     using cuda_experimental::detail::is_iterator;
@@ -14,8 +14,8 @@ TEST_CASE("test_is_iterator","[test_tensor]"){
     REQUIRE(is_iterator<float*>);
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_default_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_default_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using cuda_experimental::distance;
@@ -26,8 +26,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_default_constructor","[test_cuda_awa
     REQUIRE(cuda_storage.empty());
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_n_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_n_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using cuda_experimental::distance;
@@ -48,8 +48,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_n_constructor","[test_cuda_aware_sto
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_n_value_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_n_value_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -74,8 +74,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_n_value_constructor","[test_cuda_awa
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_host_range_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_host_range_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -112,8 +112,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_host_range_constructor","[test_cuda_
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_init_list_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_init_list_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -124,8 +124,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_init_list_constructor","[test_cuda_a
     REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), std::initializer_list<value_type>{1,2,3,4,5,6,7,8,9,10}.begin()));
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_free","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_free","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -135,8 +135,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_free","[test_cuda_aware_storage]",
     REQUIRE(cuda_storage.empty());
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_copy_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -153,8 +153,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_constructor","[test_cuda_aware_
     REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), copy.begin()));
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_copy_assignment","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -201,8 +201,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_copy_assignment","[test_cuda_aware_s
     }
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_move_constructor","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_move_constructor","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -219,8 +219,8 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_move_constructor","[test_cuda_aware_
     REQUIRE(cuda_storage.size() == 0);
 }
 
-TEMPLATE_TEST_CASE("test_cuda_aware_storage_move_assignment","[test_cuda_aware_storage]",
-    (cuda_experimental::cuda_aware_storage<float, cuda_experimental::device_allocator<float>>)
+TEMPLATE_TEST_CASE("test_cuda_storage_move_assignment","[test_cuda_storage]",
+    (cuda_experimental::cuda_storage<float, cuda_experimental::device_allocator<float>>)
 )
 {
     using storage_type = TestType;
@@ -241,9 +241,9 @@ TEMPLATE_TEST_CASE("test_cuda_aware_storage_move_assignment","[test_cuda_aware_s
     REQUIRE(cuda_storage.empty());
 }
 
-// TEST_CASE("test_cuda_aware_storage_device_range_constructor","[test_cuda_aware_storage]"){
+// TEST_CASE("test_cuda_storage_device_range_constructor","[test_cuda_storage]"){
 //     using value_type = float;
-//     using storage_type = cuda_experimental::cuda_aware_storage<value_type>;
+//     using storage_type = cuda_experimental::cuda_storage<value_type>;
 
 //     auto cuda_storage = storage_type({1,2,3,4,5,6,7,8,9,10});
 //     SECTION("not_empty_range"){

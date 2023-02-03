@@ -129,17 +129,53 @@ void* memcpy_multithread(void* dst, const void* src, std::size_t n, void*(*impl)
     return dst;
 }
 
-//multithread uninitialized_copyn
+template<typename It>
+constexpr bool is_random_access_iterator_v = std::is_base_of_v<std::random_access_iterator_tag, typename std::iterator_traits<It>::iterator_category>;
+
+//like library version but returns both iterators updated
+template<typename InputIt, typename Size, typename ForwardIt>
+inline auto uninitialized_copyn_(InputIt first, Size n, ForwardIt d_first, std::input_iterator_tag){
+    using value_type = typename std::iterator_traits<ForwardIt>::value_type;
+    for (; n > 0; ++first, (void) ++d_first, --n) {
+        ::new (const_cast<void*>(static_cast<const volatile void*>(std::addressof(*d_first)))) value_type(*first);
+    }
+    return std::pair<InputIt,ForwardIt>{first,d_first};
+}
+template<typename InputIt, typename Size, typename ForwardIt>
+inline auto uninitialized_copyn_(InputIt first, Size n, ForwardIt d_first, std::random_access_iterator_tag){
+    return std::pair<InputIt,ForwardIt>{std::next(first,n),std::uninitialized_copy_n(first,n,d_first)};
+}
+template<typename InputIt, typename Size, typename ForwardIt>
+inline auto uninitialized_copyn(InputIt first, Size n, ForwardIt d_first){
+    return uninitialized_copyn_(first,n,d_first,typename std::iterator_traits<InputIt>::iterator_category{});
+}
+
+template<typename InputIt, typename Size, typename ForwardIt>
+inline auto copyn_(InputIt first, Size n, ForwardIt d_first, std::input_iterator_tag){
+    using value_type = typename std::iterator_traits<ForwardIt>::value_type;
+    for (; n > 0; ++first, (void) ++d_first, --n) {
+        *d_first = *first;
+    }
+    return std::pair<InputIt,ForwardIt>{first,d_first};
+}
+template<typename InputIt, typename Size, typename ForwardIt>
+inline auto copyn_(InputIt first, Size n, ForwardIt d_first, std::random_access_iterator_tag){
+    return std::pair<InputIt,ForwardIt>{std::next(first,n),std::copy_n(first,n,d_first)};
+}
+template<typename InputIt, typename Size, typename ForwardIt>
+inline auto copyn(InputIt first, Size n, ForwardIt d_first){
+    return copyn_(first,n,d_first,typename std::iterator_traits<InputIt>::iterator_category{});
+}
+
+//multithread copyn
 //sync wrt caller thread, utilizes N threads: caller thread +  N-1 workers from pool
-template<std::size_t N, typename It, typename Size, typename DIt>
-auto uninitialized_copyn_multithread(It first, Size n, DIt d_first){
+template<std::size_t N, typename It, typename Size, typename DIt, typename Impl>
+auto copyn_multithread_(It first, Size n, DIt d_first, Impl impl){
     static_assert(N>0);
-    if (n){
-        if constexpr (N>1){
+    if (n>0){
+        if constexpr (N>1 && is_random_access_iterator_v<It> && is_random_access_iterator_v<DIt>){
             auto n_chunk = n/N;
             auto n_last_chunk = n_chunk + n%N;
-            using impl_type = decltype(&std::uninitialized_copy_n<It,Size,DIt>);
-            auto impl = static_cast<impl_type>(std::uninitialized_copy_n);
             using future_type = decltype(copy_pool().push(impl,first,n_chunk,d_first));
             std::array<future_type, N-1> futures{};
             if (n_chunk){
@@ -148,12 +184,21 @@ auto uninitialized_copyn_multithread(It first, Size n, DIt d_first){
                 }
             }
             return impl(first, n_last_chunk, d_first);
-        }else{
-            return std::uninitialized_copy_n(first,n,d_first);
+        }else{  //copy in single thread if N == 1 or both iterators not at least random access
+            return impl(first,n,d_first);
         }
     }else{
-        return d_first;
+        return std::pair<It,DIt>{first, d_first};
     }
+}
+
+template<std::size_t N, typename It, typename Size, typename DIt>
+inline auto uninitialized_copyn_multithread(It first, Size n, DIt d_first){
+    return copyn_multithread_<N>(first, n, d_first, static_cast<decltype(&uninitialized_copyn<It,Size,DIt>)>(uninitialized_copyn));
+}
+template<std::size_t N, typename It, typename Size, typename DIt>
+inline auto copyn_multithread(It first, Size n, DIt d_first){
+    return copyn_multithread_<N>(first, n, d_first, static_cast<decltype(&copyn<It,Size,DIt>)>(copyn));
 }
 
 //dma transfer from locked buffer to device
@@ -169,7 +214,7 @@ template<typename It>
 inline auto copy_to_pageable(It d_first, decltype(locked_pool().pop()) src_locked, std::size_t n){
     using value_type = typename std::iterator_traits<It>::value_type;
     static_assert(locked_buffer_alignment%alignof(value_type) == 0);
-    uninitialized_copyn_multithread<memcpy_workers>(reinterpret_cast<value_type*>(src_locked.get().data().get()), n, d_first);
+    return copyn_multithread<memcpy_workers>(reinterpret_cast<value_type*>(src_locked.get().data().get()), n, d_first);
 }
 
 template<typename T> struct copier;
@@ -191,10 +236,10 @@ static auto copy(It first, It last, device_pointer<T> d_first){
     static_assert(std::is_same_v<std::decay_t<T>,value_type>);
     auto n = std::distance(first, last);
     auto n_buffer = locked_buffer_size/sizeof(value_type);
-    for(;n >= n_buffer; n-=n_buffer, first+=n_buffer, d_first+=n_buffer ){
+    for(;n >= n_buffer; n-=n_buffer, d_first+=n_buffer ){
         auto buf = locked_pool().pop();
         auto buf_first = reinterpret_cast<value_type*>(buf.get().data().get());
-        std::uninitialized_copy_n(first, n_buffer, buf_first);
+        first = uninitialized_copyn(first, n_buffer, buf_first).first;
         cuda_error_check(cudaMemcpyAsync(d_first, buf_first, n_buffer*sizeof(value_type), cudaMemcpyKind::cudaMemcpyHostToDevice, cuda_stream{}));
     }
     if(n){
@@ -222,18 +267,17 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     static_assert(std::is_same_v<std::decay_t<T>,value_type>);
     auto n = std::distance(first, last);
     auto n_buffer = locked_buffer_size/sizeof(value_type);
-    for(;n >= n_buffer; n-=n_buffer, first+=n_buffer, d_first+=n_buffer ){
+    for(;n >= n_buffer; n-=n_buffer, first+=n_buffer){
         auto buf = locked_pool().pop();
         auto buf_first = reinterpret_cast<value_type*>(buf.get().data().get());
         cuda_error_check(cudaMemcpyAsync(buf_first, first, n_buffer*sizeof(value_type), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{})); //int[] cast to byte and copy to byte[] - ok
-        std::uninitialized_copy_n(buf_first, n_buffer, d_first);    //access to byte[] using pointer to value_type - violate strict aliasing?, ...?
+        d_first = std::copy_n(buf_first, n_buffer, d_first);
     }
     if(n){
         auto buf = locked_pool().pop();
         auto buf_first = reinterpret_cast<value_type*>(buf.get().data().get());
         cuda_error_check(cudaMemcpyAsync(buf_first, first, n*sizeof(value_type), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));
-        std::uninitialized_copy_n(buf_first, n, d_first);
-        d_first+=n;
+        d_first = std::copy_n(buf_first, n, d_first);
     }
     return d_first;
 }
@@ -293,9 +337,9 @@ static auto copy(It first, It last, device_pointer<T> d_first){
     if (n_bytes>cuda_copy::multithread_threshold){
         using future_type = decltype(cuda_copy::copy_pool().push(cuda_copy::dma_to_device, d_first, cuda_copy::locked_pool().pop(), cuda_copy::locked_buffer_size));
         future_type async_future{};
-        for (; n>=n_buffer; n-=n_buffer,first+=n_buffer,d_first+=n_buffer){
+        for (; n>=n_buffer; n-=n_buffer,d_first+=n_buffer){
             auto buf = cuda_copy::locked_pool().pop();
-            cuda_copy::uninitialized_copyn_multithread<cuda_copy::memcpy_workers>(first,n_buffer,reinterpret_cast<value_type*>(buf.get().data().get()));  //sync copy pageable to locked
+            first = cuda_copy::uninitialized_copyn_multithread<cuda_copy::memcpy_workers>(first,n_buffer,reinterpret_cast<value_type*>(buf.get().data().get())).first;  //sync copy pageable to locked
             if (async_future){async_future.wait();}
             async_future = cuda_copy::copy_pool().push_async(cuda_copy::dma_to_device, d_first, buf, n_buffer_bytes);   //async dma transfer locked to device
         }
@@ -353,25 +397,31 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
         auto copy_to_pageable = static_cast<decltype(&cuda_copy::copy_to_pageable<It>)>(cuda_copy::copy_to_pageable);
         using future_type = decltype(cuda_copy::copy_pool().push(copy_to_pageable, d_first, cuda_copy::locked_pool().pop(), cuda_copy::locked_buffer_size));
         future_type async_future{};
-        for (; n>=n_buffer; n-=n_buffer, first+=n_buffer, d_first+=n_buffer){
+        for (; n>=n_buffer; n-=n_buffer, first+=n_buffer){
             auto buf = cuda_copy::locked_pool().pop();
             cuda_error_check(cudaMemcpyAsync(buf.get().data(), first, n_buffer_bytes, cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));   //sync copy device to locked
-            if (async_future){async_future.wait();}
+            if (async_future){
+                d_first = async_future.get().second;
+            }
             async_future = cuda_copy::copy_pool().push_async(copy_to_pageable, d_first, buf, n_buffer);   //async copy locked to pageable
         }
         if (n){
             auto buf = cuda_copy::locked_pool().pop();
             cuda_error_check(cudaMemcpyAsync(buf.get().data(), first, n*sizeof(T), cudaMemcpyKind::cudaMemcpyDeviceToHost, cuda_stream{}));   //sync copy device to locked
-            if (async_future){async_future.wait();}
+            if (async_future){
+                d_first = async_future.get().second;
+            }
             async_future = cuda_copy::copy_pool().push_async(copy_to_pageable, d_first, buf, n);   //async copy locked to pageable
-            d_first+=n;
         }
-        if (async_future){async_future.wait();}
+        if (async_future){
+                d_first = async_future.get().second;
+        }
         return d_first;
     }else{
         return copier<native_copier_tag>::copy(first,last,d_first);
     }
 }
+
 //device device copy
 template<typename T>
 static auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){

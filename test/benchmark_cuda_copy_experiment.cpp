@@ -266,60 +266,60 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 // }
 
 
-TEST_CASE("benchmark_baseline_copy_iterator","[benchmark_cuda_copy_experiment]"){
-    using benchmark_helpers::make_sizes;
-    using benchmark_helpers::size_to_str;
-    using benchmark_helpers::bandwidth_to_str;
-    using benchmark_cuda_copy_experiment::copy_baseline;
-    using benchmark_cuda_copy_experiment::copy_baseline_v1;
-    using benchmark_cuda_copy_experiment::copy_multithread;
-    using cuda_experimental::cuda_timer;
-    using value_type = int;
-    using device_allocator_type = cuda_experimental::device_allocator<value_type>;
-    using pageable_allocator_type = std::allocator<value_type>;
-    using locked_allocator_type = cuda_experimental::locked_allocator<value_type>;
+// TEST_CASE("benchmark_baseline_copy_iterator","[benchmark_cuda_copy_experiment]"){
+//     using benchmark_helpers::make_sizes;
+//     using benchmark_helpers::size_to_str;
+//     using benchmark_helpers::bandwidth_to_str;
+//     using benchmark_cuda_copy_experiment::copy_baseline;
+//     using benchmark_cuda_copy_experiment::copy_baseline_v1;
+//     using benchmark_cuda_copy_experiment::copy_multithread;
+//     using cuda_experimental::cuda_timer;
+//     using value_type = int;
+//     using device_allocator_type = cuda_experimental::device_allocator<value_type>;
+//     using pageable_allocator_type = std::allocator<value_type>;
+//     using locked_allocator_type = cuda_experimental::locked_allocator<value_type>;
 
-    constexpr std::size_t initial_size{1<<20};
-    constexpr std::size_t factor{2};
-    constexpr std::size_t n{12};
-    constexpr auto sizes = make_sizes<initial_size,factor,n>();
-    constexpr std::size_t iters_per_size{10};
-    using container_type = std::vector<value_type>;
+//     constexpr std::size_t initial_size{1<<20};
+//     constexpr std::size_t factor{2};
+//     constexpr std::size_t n{12};
+//     constexpr auto sizes = make_sizes<initial_size,factor,n>();
+//     constexpr std::size_t iters_per_size{10};
+//     using container_type = std::vector<value_type>;
 
-    device_allocator_type device_alloc{};
-    //using host_allocator_type = locked_allocator_type;
-    using host_allocator_type = pageable_allocator_type;
-    host_allocator_type host_alloc{};
+//     device_allocator_type device_alloc{};
+//     //using host_allocator_type = locked_allocator_type;
+//     using host_allocator_type = pageable_allocator_type;
+//     host_allocator_type host_alloc{};
 
-    for (const auto& size : sizes){
-        float dt_ms_to_device{0};
-        float dt_ms_to_host{0};
-        for (std::size_t i{0}; i!=iters_per_size; ++i){
-            auto device_ptr = device_alloc.allocate(size);
-            container_type host_src(size);
-            std::iota(host_src.begin(), host_src.end(), value_type{0});
-            cuda_timer start_to_device{};
-            //copy(host_src.begin(),host_src.end(),device_ptr);
-            copy_baseline_v1(host_src.begin(),host_src.end(),device_ptr);
-            //copy_baseline(host_src.begin(),host_src.end(),device_ptr);
-            cuda_timer stop_to_device{};
-            dt_ms_to_device += stop_to_device - start_to_device;
-            container_type host_dst(size);
-            std::fill(host_dst.begin(), host_dst.end(),0);
-            cuda_timer start_to_host{};
-            //copy(device_ptr, device_ptr+size, host_dst.begin());
-            copy_baseline_v1(device_ptr, device_ptr+size, host_dst.begin());
-            //copy_baseline(device_ptr, device_ptr+size, host_dst.begin());
-            cuda_timer stop_to_host{};
-            dt_ms_to_host += stop_to_host - start_to_host;
-            REQUIRE(std::equal(host_src.begin(), host_src.end(), host_dst.begin()));
-            device_alloc.deallocate(device_ptr,size);
-        }
-        std::cout<<std::endl<<size_to_str<value_type>(size)<<" to_device "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_device)<<
-            " to_host "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_host);
-        //std::cout<<std::endl<<size_to_str<value_type>(size)<<" "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_device)<<" copy timer "<<dt_ms_to_device/iters_per_size;
-    }
-}
+//     for (const auto& size : sizes){
+//         float dt_ms_to_device{0};
+//         float dt_ms_to_host{0};
+//         for (std::size_t i{0}; i!=iters_per_size; ++i){
+//             auto device_ptr = device_alloc.allocate(size);
+//             container_type host_src(size);
+//             std::iota(host_src.begin(), host_src.end(), value_type{0});
+//             cuda_timer start_to_device{};
+//             //copy(host_src.begin(),host_src.end(),device_ptr);
+//             copy_baseline_v1(host_src.begin(),host_src.end(),device_ptr);
+//             //copy_baseline(host_src.begin(),host_src.end(),device_ptr);
+//             cuda_timer stop_to_device{};
+//             dt_ms_to_device += stop_to_device - start_to_device;
+//             container_type host_dst(size);
+//             std::fill(host_dst.begin(), host_dst.end(),0);
+//             cuda_timer start_to_host{};
+//             //copy(device_ptr, device_ptr+size, host_dst.begin());
+//             copy_baseline_v1(device_ptr, device_ptr+size, host_dst.begin());
+//             //copy_baseline(device_ptr, device_ptr+size, host_dst.begin());
+//             cuda_timer stop_to_host{};
+//             dt_ms_to_host += stop_to_host - start_to_host;
+//             REQUIRE(std::equal(host_src.begin(), host_src.end(), host_dst.begin()));
+//             device_alloc.deallocate(device_ptr,size);
+//         }
+//         std::cout<<std::endl<<size_to_str<value_type>(size)<<" to_device "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_device)<<
+//             " to_host "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_host);
+//         //std::cout<<std::endl<<size_to_str<value_type>(size)<<" "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_to_device)<<" copy timer "<<dt_ms_to_device/iters_per_size;
+//     }
+// }
 
 // TEST_CASE("benchmark_locked_device_copy","[benchmark_cuda_copy_experiment]"){
 //     using benchmark_helpers::make_sizes;
@@ -424,3 +424,42 @@ TEST_CASE("benchmark_baseline_copy_iterator","[benchmark_cuda_copy_experiment]")
 //             " pageable_to_locked "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_pageable_to_locked);
 //     }
 // }
+
+TEMPLATE_TEST_CASE("benchmark_copy_to_iterator","[benchmark_cuda_copy_experiment]",
+    std::vector<int>,
+    std::list<int>
+)
+{
+
+    using benchmark_helpers::make_sizes;
+    using benchmark_helpers::size_to_str;
+    using benchmark_helpers::bandwidth_to_str;
+    using cuda_experimental::cpu_timer;
+    using container_type = TestType;
+    using value_type = container_type::value_type;
+    using host_alloc_type = std::allocator<value_type>;
+
+    constexpr std::size_t initial_size{1<<10};
+    constexpr std::size_t factor{2};
+    constexpr std::size_t n{20};
+    constexpr auto sizes = make_sizes<initial_size,factor,n>();
+    constexpr std::size_t iters_per_size{10};
+    host_alloc_type host_alloc{};
+
+    for (const auto& size : sizes){
+        float dt_ms_copy{0};
+        for (std::size_t i{0}; i!=iters_per_size; ++i){
+            auto src = host_alloc.allocate(size);
+            std::iota(src, src+size, value_type{0});
+            container_type dst(size);
+            cpu_timer start_copy{};
+            std::copy_n(src,size,dst.begin());
+            cpu_timer stop_copy{};
+            dt_ms_copy += stop_copy - start_copy;
+            host_alloc.deallocate(src,size);
+        }
+        std::cout<<std::endl<<size_to_str<value_type>(size)<<" copy "<<bandwidth_to_str<value_type>(size*iters_per_size, dt_ms_copy);
+    }
+}
+
+

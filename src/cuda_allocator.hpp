@@ -17,7 +17,8 @@ public:
     using pointer = device_pointer<T>;
     using const_pointer = device_pointer<const T>;
     using difference_type = typename pointer::difference_type;
-    using size_type = std::size_t;
+    using size_type = difference_type;
+    //using size_type = std::size_t;
 
     pointer allocate(size_type n){
         void* p{nullptr};
@@ -48,7 +49,8 @@ public:
     using pointer = locked_pointer<T>;
     using const_pointer = locked_pointer<const T>;
     using difference_type = typename pointer::difference_type;
-    using size_type = std::size_t;
+    using size_type = difference_type;
+    //using size_type = std::size_t;
     using is_aways_equal = std::true_type;
 
     explicit locked_allocator(unsigned int flags_ = cudaHostAllocDefault):
