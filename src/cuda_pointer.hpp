@@ -10,13 +10,13 @@ namespace cuda_experimental{
 template<typename T, template<typename> typename D> class basic_pointer;
 
 template<typename T>
-class is_basic_pointer_t{
+class is_basic_pointer{
     template<typename...U>
     static std::true_type selector(const basic_pointer<U...>&);
     static std::false_type selector(...);
 public: using type = decltype(selector(std::declval<T>()));
 };
-template<typename T> constexpr bool is_basic_pointer_v = is_basic_pointer_t<T>::type();
+template<typename T> inline constexpr bool is_basic_pointer_v = typename is_basic_pointer<T>::type();
 
 template<typename T, template<typename> typename D>
 class basic_pointer{
@@ -127,6 +127,7 @@ template<typename T>
 class device_pointer : public basic_pointer<T,device_pointer>
 {
     static_assert(std::is_trivially_copyable_v<T>);
+    using basic_poiner_base = basic_pointer<T,device_pointer>;
     class device_data_reference{
         device_pointer data;
     public:
@@ -155,24 +156,25 @@ class device_pointer : public basic_pointer<T,device_pointer>
 
 public:
     using iterator_category = std::random_access_iterator_tag;
-    using typename basic_pointer::difference_type;
-    using typename basic_pointer::value_type;
-    using typename basic_pointer::pointer;
+    using typename basic_poiner_base::difference_type;
+    using typename basic_poiner_base::value_type;
+    using typename basic_poiner_base::pointer;
     using reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
     using const_reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
     using device_id_type = int;
     static constexpr device_id_type undefined_device = -1;
     device_pointer():
-        basic_pointer{nullptr},
+        basic_poiner_base{nullptr},
         device_{undefined_device}
     {}
     device_pointer(pointer p, device_id_type device__):
-        basic_pointer{p},
+        basic_poiner_base{p},
         device_{device__}
     {}
+    using basic_poiner_base::get;
+    using basic_poiner_base::operator=;
     explicit operator device_pointer<const value_type>()const{return device_pointer<const value_type>{get(),device()};}
-    using basic_pointer::operator=;
-    auto operator*()const{return deref_helper(std::is_const<T>::type{});}
+    auto operator*()const{return deref_helper(typename std::is_const<T>::type{});}
     auto operator[](difference_type i)const{return *(*this+i);}
     auto device()const{return device_;}
 };
@@ -187,22 +189,24 @@ template<typename T>
 class locked_pointer : public basic_pointer<T,locked_pointer>
 {
     static_assert(std::is_trivially_copyable_v<T>);
+    using basic_poiner_base = basic_pointer<T,locked_pointer>;
 public:
     using iterator_category = std::random_access_iterator_tag;
-    using typename basic_pointer::difference_type;
-    using typename basic_pointer::value_type;
-    using typename basic_pointer::pointer;
+    using typename basic_poiner_base::difference_type;
+    using typename basic_poiner_base::value_type;
+    using typename basic_poiner_base::pointer;
     using reference = T&;
     using const_reference = const T&;
 
     locked_pointer():
-        basic_pointer{nullptr}
+        basic_poiner_base{nullptr}
     {}
     explicit locked_pointer(pointer p):
-        basic_pointer{p}
+        basic_poiner_base{p}
     {}
+    using basic_poiner_base::operator=;
+    using basic_poiner_base::get;
     explicit operator locked_pointer<const value_type>()const{return locked_pointer<const value_type>{get()};}
-    using basic_pointer::operator=;
     auto& operator*()const{return *get();}
     auto& operator[](difference_type i)const{return *(*this+i);}
 };

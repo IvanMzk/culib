@@ -79,7 +79,7 @@ TEMPLATE_TEST_CASE("test_cuda_storage_pointers_range_constructor","[test_cuda_st
 )
 {
     using storage_type = TestType;
-    using value_type = storage_type::value_type;
+    using value_type = typename storage_type::value_type;
 
     SECTION("host_pointers_range"){
         value_type host_data[]{1,2,3,4,5,6,7,8,9,10};
@@ -148,7 +148,7 @@ TEMPLATE_TEST_CASE("test_cuda_storage_std_iterators_range_constructor","[test_cu
 )
 {
     using container_type = TestType;
-    using value_type = container_type::value_type;
+    using value_type = typename container_type::value_type;
     using storage_type = cuda_experimental::cuda_storage<value_type, cuda_experimental::device_allocator<value_type>>;
 
     auto expected = container_type{1,2,3,4,5,6,7,8,9,10};
@@ -213,8 +213,8 @@ TEMPLATE_TEST_CASE("test_cuda_storage_copy_assignment","[test_cuda_storage]",
     using storage_type = TestType;
     using value_type = typename storage_type::value_type;
     using allocator_type = typename storage_type::allocator_type;
-    REQUIRE(!std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
-    REQUIRE(std::allocator_traits<allocator_type>::is_always_equal());
+    REQUIRE(!typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
+    REQUIRE(typename std::allocator_traits<allocator_type>::is_always_equal());
     static constexpr std::size_t n{100};
     auto cuda_storage = storage_type(n,7);
 
@@ -279,8 +279,8 @@ TEMPLATE_TEST_CASE("test_cuda_storage_move_assignment","[test_cuda_storage]",
     using storage_type = TestType;
     using value_type = typename storage_type::value_type;
     using allocator_type = typename storage_type::allocator_type;
-    REQUIRE(!std::allocator_traits<allocator_type>::propagate_on_container_move_assignment());
-    REQUIRE(std::allocator_traits<allocator_type>::is_always_equal());
+    REQUIRE(!typename std::allocator_traits<allocator_type>::propagate_on_container_move_assignment());
+    REQUIRE(typename std::allocator_traits<allocator_type>::is_always_equal());
     std::size_t n{10};
     value_type v{3};
     auto cuda_storage = storage_type(n,v);

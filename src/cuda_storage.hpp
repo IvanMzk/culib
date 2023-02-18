@@ -131,7 +131,7 @@ private:
 
     //copy assign other's allocator
     void copy_assign(const cuda_storage& other, std::true_type){
-        if (allocator_ ==  other.allocator_ || std::allocator_traits<allocator_type>::is_always_equal()){
+        if (allocator_ ==  other.allocator_ || typename std::allocator_traits<allocator_type>::is_always_equal()){
             copy_assign(other, std::false_type{});
         }else{
             auto other_size = other.size();
@@ -147,7 +147,7 @@ private:
 
     //no move assign other's allocator, if allocators not equal copy are made
     void move_assign(cuda_storage&& other, std::false_type){
-        if (allocator_ ==  other.allocator_ || std::allocator_traits<allocator_type>::is_always_equal()){
+        if (allocator_ ==  other.allocator_ || typename std::allocator_traits<allocator_type>::is_always_equal()){
             deallocate();
             size_ = other.size_;
             begin_ = other.begin_;

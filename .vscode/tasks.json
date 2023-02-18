@@ -16,75 +16,35 @@
         {
             "type": "shell",
             "label": "cmake build Test",
-            "command": "cmake.exe --build ${workspaceFolder}\\build --target Test",
+            "command": "cmake -E time cmake -E env NINJA_STATUS=[%e/%f/%t] cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test",
             "args": [],
             "group": "test"
         },
         {
             "type": "shell",
-            "label": "cmake build Test_selected",
-            "command": "cmake -E time cmake -E env NINJA_STATUS=[%e/%f/%t] cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test_selected",
+            "label": "cmake build Test with error filter",
+            "command": "cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test | findstr /s /i error",
             "args": [],
             "group": "test"
         },
         {
             "type": "shell",
-            "label": "cmake build Test_selected with error filter",
-            "command": "cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test_selected | findstr /s /i error",
-            "args": [],
-            "group": "test"
-        },
-        {
-            "type": "shell",
-            "label": "Run all tests",
+            "label": "Run tests",
             "command": "${workspaceFolder}\\build\\test\\Test.exe",
             "args": [],
             "group": "test"
         },
         {
-            "type": "shell",
-            "label": "Run selected tests",
-            "command": "${workspaceFolder}\\build\\test\\Test_selected.exe",
-            "args": [],
+            "label":"Tests build & run",
+            "dependsOrder": "sequence",
+            "dependsOn":["cmake generate","cmake build Test","Run tests"],
             "group": "test"
         },
         {
-            "label":"All Tests build & run",
+            "label":"Tests build & run, error filter",
             "dependsOrder": "sequence",
-            "dependsOn":["cmake generate","cmake build Test","Run all tests"],
+            "dependsOn":["cmake generate","cmake build Test with error filter","Run tests"],
             "group": "test"
-        },
-        {
-            "label":"Selected Tests build & run",
-            "dependsOrder": "sequence",
-            "dependsOn":["cmake generate","cmake build Test_selected","Run selected tests"],
-            "group": "test"
-        },
-        {
-            "label":"Selected Tests build & run, error filter",
-            "dependsOrder": "sequence",
-            "dependsOn":["cmake generate","cmake build Test_selected with error filter","Run selected tests"],
-            "group": "test"
-        },
-        {
-            "type": "shell",
-            "label": "cmake build Main",
-            "command": "cmake.exe --build ${workspaceFolder}\\build --target Main",
-            "args": [],
-            "group": "build"
-        },
-        {
-            "type": "shell",
-            "label": "Run Main",
-            "command": "${workspaceFolder}\\build\\src\\Main.exe",
-            "args": [],
-            "group": "build"
-        },
-        {
-            "label":"Main build & run",
-            "dependsOrder": "sequence",
-            "dependsOn":["cmake generate","cmake build Main","Run Main"],
-            "group": "build"
         }
     ]
 }
