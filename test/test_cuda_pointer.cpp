@@ -9,13 +9,14 @@ using cuda_experimental::basic_pointer;
 template<typename T>
 class test_pointer : public basic_pointer<T, test_pointer>
 {
+    using basic_pointer_base = basic_pointer<T, test_pointer>;
 public:
-    using typename basic_pointer::pointer;
-    using typename basic_pointer::value_type;
+    using typename basic_pointer_base::pointer;
+    using typename basic_pointer_base::value_type;
     //operator test_pointer<const T>()const{return test_pointer<const T>{get()};}
-    using basic_pointer::operator=;
+    using basic_pointer_base::operator=;
     explicit test_pointer(pointer p = nullptr):
-        basic_pointer(p)
+        basic_pointer_base(p)
     {}
 };
 }   //end of namespace test_cuda_memory
@@ -146,7 +147,7 @@ TEMPLATE_TEST_CASE("test_device_pointer","[test_cuda_memory]",
     copy(expected.begin(), expected.end(), ptr_dev);
 
     SECTION("device_pointer_conversion"){
-        auto cp = static_cast<device_allocator_type::const_pointer>(ptr_dev);
+        auto cp = static_cast<typename device_allocator_type::const_pointer>(ptr_dev);
         REQUIRE(cp.get() == ptr_dev.get());
         REQUIRE(cp.device() == ptr_dev.device());
     }

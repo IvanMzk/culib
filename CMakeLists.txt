@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 set(project_name cuda_experimental)
-project(${project_name} LANGUAGES CXX CUDA)
+project(${project_name} LANGUAGES CXX)
 add_subdirectory(${${project_name}_SOURCE_DIR}//..//multithreading multithreading)
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     add_subdirectory(test)

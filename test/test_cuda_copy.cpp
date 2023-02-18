@@ -1,4 +1,6 @@
 #include <numeric>
+#include <list>
+#include <vector>
 #include "catch.hpp"
 #include "cuda_memory.hpp"
 #include "benchmark_helpers.hpp"
@@ -171,7 +173,7 @@ TEMPLATE_TEST_CASE("test_cuda_copier_host_device_iterators_range","[test_cuda_co
 {
     using copier_type = std::tuple_element_t<0,TestType>;
     using container_type = std::tuple_element_t<1,TestType>;
-    using value_type = container_type::value_type;
+    using value_type = typename container_type::value_type;
     using device_alloc_type = cuda_experimental::device_allocator<value_type>;
     using host_alloc_type = std::allocator<value_type>;
     using benchmark_helpers::make_sizes;
