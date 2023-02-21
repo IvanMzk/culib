@@ -235,7 +235,7 @@ static auto copy(It first, It last, device_pointer<T> d_first){
     using value_type = typename std::iterator_traits<It>::value_type;
     static_assert(locked_buffer_alignment%alignof(value_type) == 0);
     static_assert(std::is_same_v<std::decay_t<T>,value_type>);
-    auto n = std::distance(first, last);
+    auto n = static_cast<std::size_t>(std::distance(first, last));
     auto n_buffer = locked_buffer_size/sizeof(value_type);
     for(;n >= n_buffer; n-=n_buffer, d_first+=n_buffer ){
         auto buf = locked_pool().pop();
@@ -266,7 +266,7 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     using value_type = typename std::iterator_traits<It>::value_type;
     static_assert(locked_buffer_alignment%alignof(value_type) == 0);
     static_assert(std::is_same_v<std::decay_t<T>,value_type>);
-    auto n = std::distance(first, last);
+    auto n = static_cast<std::size_t>(std::distance(first, last));
     auto n_buffer = locked_buffer_size/sizeof(value_type);
     for(;n >= n_buffer; n-=n_buffer, first+=n_buffer){
         auto buf = locked_pool().pop();
@@ -331,9 +331,9 @@ static auto copy(It first, It last, device_pointer<T> d_first){
     static_assert(std::is_same_v<std::decay_t<T>,typename std::iterator_traits<It>::value_type>);
     using value_type = typename std::iterator_traits<It>::value_type;
     static_assert(locked_buffer_alignment%alignof(value_type) == 0);
-    auto n = std::distance(first,last);
+    auto n = static_cast<std::size_t>(std::distance(first,last));
     auto n_bytes = n*sizeof(value_type);
-    auto n_buffer = cuda_copy::locked_buffer_size/sizeof(value_type);
+    auto n_buffer = locked_buffer_size/sizeof(value_type);
     auto n_buffer_bytes = n_buffer*sizeof(value_type);
     if (n_bytes>cuda_copy::multithread_threshold){
         using future_type = decltype(cuda_copy::copy_pool().push(cuda_copy::dma_to_device, d_first, cuda_copy::locked_pool().pop(), cuda_copy::locked_buffer_size));
@@ -390,7 +390,7 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, std::remove_co
 template<typename T, typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0>
 static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     static_assert(std::is_same_v<std::decay_t<T>,typename std::iterator_traits<It>::value_type>);
-    auto n = std::distance(first,last);
+    auto n = static_cast<std::size_t>(std::distance(first,last));
     auto n_bytes = n*sizeof(T);
     auto n_buffer = cuda_copy::locked_buffer_size/sizeof(T);
     auto n_buffer_bytes = n_buffer*sizeof(T);

@@ -9,7 +9,7 @@ namespace cuda_experimental{
 
 template<typename T>
 void fill(device_pointer<T> first, device_pointer<T> last, const T& v){
-    auto n = distance(first,last);
+    auto n = static_cast<std::size_t>(distance(first,last));
     auto n_buf = cuda_copy::locked_buffer_size/sizeof(T);
     auto n_buf_bytes = n_buf*sizeof(T);
     auto buf = cuda_copy::locked_pool().pop();
