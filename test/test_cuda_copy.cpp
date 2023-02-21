@@ -16,8 +16,8 @@ TEST_CASE("test_memcpy_avx","[test_cuda_copy]"){
     host_allocator_type host_alloc{};
     constexpr std::size_t initial_size{1000*1000};
     constexpr std::size_t factor{2};
-    constexpr std::size_t n{5};
-    constexpr auto sizes = make_sizes<initial_size,factor,n>();
+    constexpr std::size_t n_sizes{5};
+    constexpr auto sizes = make_sizes<initial_size,factor,n_sizes>();
     constexpr std::size_t block_alignment = alignof(cuda_experimental::cuda_copy::avx_block_type);
     static_assert(block_alignment%sizeof(value_type) == 0);
     static_assert(block_alignment/sizeof(value_type) > 2);
@@ -189,7 +189,7 @@ TEMPLATE_TEST_CASE("test_cuda_copier_host_device_iterators_range","[test_cuda_co
         auto device_ptr = device_alloc.allocate(size);
         container_type host_src(size);
         container_type host_dst(size);
-        std:iota(host_src.begin(), host_src.end(),value_type{0});
+        std::iota(host_src.begin(), host_src.end(),value_type{0});
         auto res_hd = copier_type::copy(host_src.begin(),host_src.end(),device_ptr);
         auto res_dh = copier_type::copy(device_ptr,device_ptr+size,host_dst.begin());
         REQUIRE(res_hd == device_ptr+size);

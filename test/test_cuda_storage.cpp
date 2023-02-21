@@ -150,11 +150,12 @@ TEMPLATE_TEST_CASE("test_cuda_storage_std_iterators_range_constructor","[test_cu
     using container_type = TestType;
     using value_type = typename container_type::value_type;
     using storage_type = cuda_experimental::cuda_storage<value_type, cuda_experimental::device_allocator<value_type>>;
+    using size_type = typename storage_type::size_type;
 
     auto expected = container_type{1,2,3,4,5,6,7,8,9,10};
     SECTION("not_empty_range"){
         auto cuda_storage = storage_type(expected.begin(), expected.end());
-        REQUIRE(cuda_storage.size() == expected.size());
+        REQUIRE(cuda_storage.size() == static_cast<size_type>(expected.size()));
         REQUIRE(!cuda_storage.empty());
         REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), expected.begin()));
     }
@@ -211,11 +212,12 @@ TEMPLATE_TEST_CASE("test_cuda_storage_copy_assignment","[test_cuda_storage]",
 )
 {
     using storage_type = TestType;
+    using size_type = typename storage_type::size_type;
     using value_type = typename storage_type::value_type;
     using allocator_type = typename storage_type::allocator_type;
     REQUIRE(!typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
     REQUIRE(typename std::allocator_traits<allocator_type>::is_always_equal());
-    static constexpr std::size_t n{100};
+    static constexpr size_type n{100};
     auto cuda_storage = storage_type(n,7);
 
     SECTION("not_self_assignment_reallocation"){
@@ -277,11 +279,12 @@ TEMPLATE_TEST_CASE("test_cuda_storage_move_assignment","[test_cuda_storage]",
 )
 {
     using storage_type = TestType;
+    using size_type = typename storage_type::size_type;
     using value_type = typename storage_type::value_type;
     using allocator_type = typename storage_type::allocator_type;
     REQUIRE(!typename std::allocator_traits<allocator_type>::propagate_on_container_move_assignment());
     REQUIRE(typename std::allocator_traits<allocator_type>::is_always_equal());
-    std::size_t n{10};
+    size_type n{10};
     value_type v{3};
     auto cuda_storage = storage_type(n,v);
 

@@ -31,8 +31,8 @@ TEMPLATE_TEST_CASE("test_basic_pointer","[test_cuda_memory]",
 
     REQUIRE(std::is_trivially_copyable_v<pointer_type>);
     value_type v{};
-    auto p = pointer_type{};
-    REQUIRE(p.get() == nullptr);
+    auto default_ptr = pointer_type{};
+    REQUIRE(default_ptr.get() == nullptr);
     SECTION("from_pointer_construction"){
         auto p = pointer_type{&v};
         REQUIRE(p.get() == &v);
@@ -140,7 +140,7 @@ TEMPLATE_TEST_CASE("test_device_pointer","[test_cuda_memory]",
     device_allocator_type allocator{};
     constexpr size_t n = 100;
     std::vector<value_type> expected(n);
-    std:iota(expected.begin(), expected.end(), value_type{0});
+    std::iota(expected.begin(), expected.end(), value_type{0});
     auto device = cuda_get_device();
     auto ptr_dev = allocator.allocate(n);
     REQUIRE(ptr_dev.device() == device);

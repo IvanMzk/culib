@@ -33,7 +33,7 @@ public:
             cuda_error_check(cudaFree(p));
         }
     }
-    bool operator==(const device_allocator& other)const{return true;}
+    bool operator==(const device_allocator&)const{return true;}
 };
 
 /*
