@@ -9,14 +9,18 @@ namespace culib{
 
 template<typename T, template<typename> typename D> class basic_pointer;
 
+namespace detail{
+
 template<typename T>
-class is_basic_pointer{
-    template<typename...U>
-    static std::true_type selector(const basic_pointer<U...>&);
+struct is_basic_pointer{
+    template<typename U, template<typename> typename V>
+    static std::true_type selector(const basic_pointer<U,V>&);
     static std::false_type selector(...);
-public: using type = decltype(selector(std::declval<T>()));
+    using type = decltype(selector(std::declval<T>()));
 };
 template<typename T> inline constexpr bool is_basic_pointer_v = typename is_basic_pointer<T>::type();
+
+}   //end of namespace detail
 
 template<typename T, template<typename> typename D>
 class basic_pointer{
@@ -50,7 +54,7 @@ public:
         ptr-=offset;
         return to_derived();
     }
-    template<typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0>
+    template<typename U, std::enable_if_t<!detail::is_basic_pointer_v<U>,int> =0>
     friend auto operator+(const basic_pointer& lhs, const U& rhs){
         derived_type res{static_cast<const derived_type&>(lhs)};
         res.set_ptr(lhs.get() + rhs);
@@ -84,9 +88,9 @@ auto operator--(basic_pointer<T,D>& lhs, int){
     return res;
 }
 
-template<typename T, template<typename> typename D, typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0>
+template<typename T, template<typename> typename D, typename U, std::enable_if_t<!detail::is_basic_pointer_v<U>,int> =0>
 auto operator+(const U& lhs, const basic_pointer<T,D>& rhs){return rhs+lhs;}
-template<typename T, template<typename> typename D, typename U, std::enable_if_t<!is_basic_pointer_v<U>,int> =0 >
+template<typename T, template<typename> typename D, typename U, std::enable_if_t<!detail::is_basic_pointer_v<U>,int> =0 >
 auto operator-(const basic_pointer<T,D>& lhs, const U& rhs){return lhs+-rhs;}
 
 template<typename T, template<typename> typename D>

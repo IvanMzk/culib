@@ -231,7 +231,7 @@ static auto copy(const T* first, const T* last, device_pointer<std::remove_const
     return d_first+n;
 }
 
-template<typename It, typename T, std::enable_if_t<!is_basic_pointer_v<It>, int> =0>
+template<typename It, typename T, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>, int> =0>
 static auto copy(It first, It last, device_pointer<T> d_first){
     using value_type = typename std::iterator_traits<It>::value_type;
     static_assert(locked_buffer_alignment%alignof(value_type) == 0);
@@ -262,7 +262,7 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, std::remove_co
     return d_first+n;
 }
 
-template<typename T, typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0>
+template<typename T, typename It, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>,int> =0>
 static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     using value_type = typename std::iterator_traits<It>::value_type;
     static_assert(locked_buffer_alignment%alignof(value_type) == 0);
@@ -327,7 +327,7 @@ static auto copy(T* first, T* last, device_pointer<std::remove_const_t<T>> d_fir
     }
 }
 
-template<typename It, typename T, std::enable_if_t<!is_basic_pointer_v<It>, int> =0>
+template<typename It, typename T, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>, int> =0>
 static auto copy(It first, It last, device_pointer<T> d_first){
     static_assert(std::is_same_v<std::decay_t<T>,typename std::iterator_traits<It>::value_type>);
     using value_type = typename std::iterator_traits<It>::value_type;
@@ -388,7 +388,7 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, std::remove_co
     }
 }
 
-template<typename T, typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0>
+template<typename T, typename It, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>,int> =0>
 static auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     static_assert(std::is_same_v<std::decay_t<T>,typename std::iterator_traits<It>::value_type>);
     auto n = static_cast<std::size_t>(std::distance(first,last));
@@ -462,7 +462,7 @@ template<typename T>
 auto copy(T* first, T* last, device_pointer<std::remove_const_t<T>> d_first){
     return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
 }
-template<typename It, typename T, std::enable_if_t<!is_basic_pointer_v<It>, int> =0>
+template<typename It, typename T, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>, int> =0>
 auto copy(It first, It last, device_pointer<T> d_first){
     return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
 }
@@ -471,7 +471,7 @@ template<typename T>
 auto copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
     return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
 }
-template<typename T, typename It, std::enable_if_t<!is_basic_pointer_v<It>,int> =0>
+template<typename T, typename It, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>,int> =0>
 auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
     return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
 }
