@@ -4,6 +4,7 @@
 //#include <immintrin.h>
 #include <exception>
 #include <cstring>
+#include <immintrin.h>
 #include "thread_pool.hpp"
 #include "bounded_pool.hpp"
 #include "cuda_pointer.hpp"
