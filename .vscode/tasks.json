@@ -6,8 +6,7 @@
         {
             "type": "shell",
             "label": "cmake generate",
-            //"command": "cmake.exe -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_BUILD_TYPE=Release -G \"Ninja\" -S ${workspaceFolder} -B ${workspaceFolder}\\build",
-            "command": "cmake.exe -DCMAKE_BUILD_TYPE=Release -G \"Ninja\" -S ${workspaceFolder} -B ${workspaceFolder}\\build",
+            "command": "cmake -DCMAKE_BUILD_TYPE=Release -GNinja -S ${workspaceFolder} -B ${workspaceFolder}/build",
             "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -17,21 +16,21 @@
         {
             "type": "shell",
             "label": "cmake build Test",
-            "command": "cmake -E time cmake -E env NINJA_STATUS=[%e/%f/%t] cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test",
+            "command": "cmake -E time cmake -E env NINJA_STATUS=[%e/%f/%t] cmake --build ${workspaceFolder}/build -j 10 --target Test",
             "args": [],
             "group": "test"
         },
         {
             "type": "shell",
             "label": "cmake build Test with error filter",
-            "command": "cmake.exe --build ${workspaceFolder}\\build -j 10 --target Test | findstr /s /i error",
+            "command": "cmake --build ${workspaceFolder}/build -j 10 --target Test | findstr /s /i error",
             "args": [],
             "group": "test"
         },
         {
             "type": "shell",
             "label": "Run tests",
-            "command": "${workspaceFolder}\\build\\test\\Test.exe",
+            "command": "${workspaceFolder}/build/test/Test",
             "args": [],
             "group": "test"
         },
