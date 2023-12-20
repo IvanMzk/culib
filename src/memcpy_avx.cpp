@@ -1,8 +1,7 @@
-#include "cuda_memory.hpp"
+#include "cuda_copy.hpp"
 
-namespace cuda_experimental{
+namespace culib{
 namespace cuda_copy{
-
 namespace detail{
 inline constexpr std::size_t unrolling_factor = 4;
 //256 block, aligned nt load and store
@@ -61,7 +60,7 @@ inline void copyn_avx_lusa(const __m256i*& first, std::size_t n, __m256i*& d_fir
     }
     _mm_sfence();
 }
-}
+}   //end of namespace detail
 
 void* memcpy_avx(void* dst_host, const void* src_host, std::size_t n){
     //always do nt store
@@ -108,5 +107,5 @@ void* memcpy_avx(void* dst_host, const void* src_host, std::size_t n){
     return dst_host;
 }
 
-}
-}
+}   //end of namespace cuda_copy
+}   //end of namespace culib

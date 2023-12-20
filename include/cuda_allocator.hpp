@@ -3,7 +3,7 @@
 
 #include "cuda_helpers.hpp"
 
-namespace cuda_experimental{
+namespace culib{
 
 /*
 * allocate memory on current active device
@@ -71,6 +71,6 @@ public:
     bool operator==(const locked_allocator& other)const{return flags == other.flags;}
 };
 
-}   //end of namespace cuda_experimental
+}   //end of namespace culib
 
 #endif

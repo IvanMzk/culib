@@ -5,7 +5,7 @@
 #include <iterator>
 #include <cstdint>
 
-namespace cuda_experimental{
+namespace culib{
 
 template<typename T, template<typename> typename D> class basic_pointer;
 
@@ -212,6 +212,6 @@ public:
 };
 
 
-}   //end of namespace cuda_experimental
+}   //end of namespace culib
 
 #endif

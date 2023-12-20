@@ -7,7 +7,7 @@
 #include <thread>
 #include "cuda_runtime.h"
 
-namespace cuda_experimental{
+namespace culib{
 
 class cuda_exception : public std::runtime_error{
     public: cuda_exception(const char* what):runtime_error(what){}
@@ -173,6 +173,6 @@ public:
     {}
 };
 
-}   //end of namespace cuda_experimental
+}   //end of namespace culib
 
 #endif

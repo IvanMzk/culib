@@ -5,7 +5,7 @@
 #include <iostream>
 #include "cuda_memory.hpp"
 
-namespace cuda_experimental{
+namespace culib{
 
 namespace detail{
     template<typename, typename = void> constexpr bool is_iterator = false;
@@ -184,7 +184,7 @@ private:
     pointer begin_;
 };
 
-}   //end of namespace cuda_experimental
+}   //end of namespace culib
 
 
 

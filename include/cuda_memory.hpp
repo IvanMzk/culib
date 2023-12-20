@@ -5,7 +5,7 @@
 #include "cuda_allocator.hpp"
 #include "cuda_copy.hpp"
 
-namespace cuda_experimental{
+namespace culib{
 
 template<typename T>
 void fill(device_pointer<T> first, device_pointer<T> last, const T& v){
@@ -22,6 +22,6 @@ void fill(device_pointer<T> first, device_pointer<T> last, const T& v){
     }
 }
 
-}   //end of namespace cuda_experimental{
+}   //end of namespace culib{
 
 #endif

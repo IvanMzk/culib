@@ -7,15 +7,15 @@
 
 namespace benchmark_cuda_copy_experiment{
 
-using cuda_experimental::device_pointer;
-using cuda_experimental::locked_pointer;
-using cuda_experimental::is_basic_pointer_v;
-using cuda_experimental::cuda_stream;
-using cuda_experimental::cuda_assert;
-using cuda_experimental::cuda_copy::memcpy_avx;
-using cuda_experimental::cuda_copy::locked_pool;
-using cuda_experimental::cuda_copy::locked_buffer_size;
-using cuda_experimental::cuda_copy::locked_uninitialized_memory;
+using culib::device_pointer;
+using culib::locked_pointer;
+using culib::is_basic_pointer_v;
+using culib::cuda_stream;
+using culib::cuda_assert;
+using culib::cuda_copy::memcpy_avx;
+using culib::cuda_copy::locked_pool;
+using culib::cuda_copy::locked_buffer_size;
+using culib::cuda_copy::locked_uninitialized_memory;
 
 inline auto& memcpy_workers_pool_v1(){
     static thread_pool::thread_pool_v1<void*(void*,const void*,std::size_t)> memcpy_pool{10, 10};
@@ -210,7 +210,7 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 
 
 // TEST_CASE("benchmark_memcpy_avx","[benchmark_memcpy_avx]"){
-//     using cuda_experimental::cuda_copy::memcpy_avx;
+//     using culib::cuda_copy::memcpy_avx;
 //     using benchmark_cuda_copy_experiment::copy_avx_multithread;
 //     using benchmark_cuda_copy_experiment::copy_multithread;
 //     using benchmark_cuda_copy_experiment::memcpy_pool_v1;
@@ -218,7 +218,7 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 //     using benchmark_helpers::make_sizes;
 //     using value_type = int;
 //     using host_allocator_type = std::allocator<value_type>;
-//     using cuda_experimental::cpu_timer;
+//     using culib::cpu_timer;
 //     using benchmark_helpers::bandwidth_to_str;
 //     using benchmark_helpers::size_to_str;
 
@@ -273,11 +273,11 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 //     using benchmark_cuda_copy_experiment::copy_baseline;
 //     using benchmark_cuda_copy_experiment::copy_baseline_v1;
 //     using benchmark_cuda_copy_experiment::copy_multithread;
-//     using cuda_experimental::cuda_timer;
+//     using culib::cuda_timer;
 //     using value_type = int;
-//     using device_allocator_type = cuda_experimental::device_allocator<value_type>;
+//     using device_allocator_type = culib::device_allocator<value_type>;
 //     using pageable_allocator_type = std::allocator<value_type>;
-//     using locked_allocator_type = cuda_experimental::locked_allocator<value_type>;
+//     using locked_allocator_type = culib::locked_allocator<value_type>;
 
 //     constexpr std::size_t initial_size{1<<20};
 //     constexpr std::size_t factor{2};
@@ -327,11 +327,11 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 //     using benchmark_helpers::bandwidth_to_str;
 //     using benchmark_cuda_copy_experiment::copy_baseline;
 //     using benchmark_cuda_copy_experiment::copy_multithread;
-//     using cuda_experimental::cuda_timer;
+//     using culib::cuda_timer;
 //     using value_type = int;
-//     using device_allocator_type = cuda_experimental::device_allocator<value_type>;
+//     using device_allocator_type = culib::device_allocator<value_type>;
 //     using pageable_allocator_type = std::allocator<value_type>;
-//     using locked_allocator_type = cuda_experimental::locked_allocator<value_type>;
+//     using locked_allocator_type = culib::locked_allocator<value_type>;
 
 //     constexpr std::size_t initial_size{1<<20};
 //     constexpr std::size_t factor{2};
@@ -377,11 +377,11 @@ void copy_multithread(device_pointer<T> first, device_pointer<T> last, std::remo
 //     using benchmark_helpers::make_sizes;
 //     using benchmark_helpers::size_to_str;
 //     using benchmark_helpers::bandwidth_to_str;
-//     using cuda_experimental::cpu_timer;
+//     using culib::cpu_timer;
 //     using value_type = int;
-//     using device_alloc_type = cuda_experimental::device_allocator<value_type>;
+//     using device_alloc_type = culib::device_allocator<value_type>;
 //     using host_alloc_type = std::allocator<value_type>;
-//     using locked_alloc_type = cuda_experimental::locked_allocator<value_type>;
+//     using locked_alloc_type = culib::locked_allocator<value_type>;
 //     using benchmark_cuda_copy_experiment::copy_baseline;
 //     using benchmark_cuda_copy_experiment::copy_multithread;
 
@@ -434,7 +434,7 @@ TEMPLATE_TEST_CASE("benchmark_copy_to_iterator","[benchmark_cuda_copy_experiment
     using benchmark_helpers::make_sizes;
     using benchmark_helpers::size_to_str;
     using benchmark_helpers::bandwidth_to_str;
-    using cuda_experimental::cpu_timer;
+    using culib::cpu_timer;
     using container_type = TestType;
     using value_type = container_type::value_type;
     using host_alloc_type = std::allocator<value_type>;

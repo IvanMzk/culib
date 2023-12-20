@@ -53,7 +53,7 @@ namespace benchmark_helpers{
     //     using value_type = T;
     //     static constexpr char name[] = "pageable_uninitialized_buffer_maker";
     //     template<typename U>
-    //     auto operator()(const U& n){return cuda_experimental::pageable_buffer<value_type>(n);}
+    //     auto operator()(const U& n){return culib::pageable_buffer<value_type>(n);}
     // };
     // template<typename T>
     // struct pageable_initialized_buffer_maker
@@ -67,7 +67,7 @@ namespace benchmark_helpers{
     //     {}
     //     template<typename U>
     //     auto operator()(const U& n){
-    //         auto buf = cuda_experimental::pageable_buffer<value_type>(n);
+    //         auto buf = culib::pageable_buffer<value_type>(n);
     //         std::uninitialized_fill(buf.begin(), buf.end(), init_data_);
     //         return buf;
     //     }
@@ -78,7 +78,7 @@ namespace benchmark_helpers{
     //     using value_type = T;
     //     static constexpr char name[] = "locked_buffer_maker";
     //     template<typename U>
-    //     auto operator()(const U& n){return cuda_experimental::locked_buffer<value_type>(n);}
+    //     auto operator()(const U& n){return culib::locked_buffer<value_type>(n);}
     // };
     // template<typename T>
     // struct locked_write_combined_buffer_maker
@@ -86,7 +86,7 @@ namespace benchmark_helpers{
     //     using value_type = T;
     //     static constexpr char name[] = "locked_write_combined_buffer_maker";
     //     template<typename U>
-    //     auto operator()(const U& n){return cuda_experimental::make_locked_memory_buffer<value_type>(n,cudaHostAllocWriteCombined);}
+    //     auto operator()(const U& n){return culib::make_locked_memory_buffer<value_type>(n,cudaHostAllocWriteCombined);}
     // };
 
 }

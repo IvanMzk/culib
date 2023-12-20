@@ -40,8 +40,8 @@ TEMPLATE_TEST_CASE("test_device_allocator","[test_cuda_allocator]",
 )
 {
     using value_type = TestType;
-    using allocator_type = cuda_experimental::device_allocator<value_type>;
-    using cuda_experimental::cuda_get_device;
+    using allocator_type = culib::device_allocator<value_type>;
+    using culib::cuda_get_device;
 
     std::size_t n{100};
     allocator_type allocator{};
@@ -59,7 +59,7 @@ TEMPLATE_TEST_CASE("test_locked_allocator","[test_cuda_allocator]",
 )
 {
     using value_type = TestType;
-    using allocator_type = cuda_experimental::locked_allocator<value_type>;
+    using allocator_type = culib::locked_allocator<value_type>;
 
     std::size_t n{100};
     allocator_type allocator{};

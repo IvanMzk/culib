@@ -9,8 +9,8 @@ namespace benchmark_cuda_copy{
 
 
 TEMPLATE_TEST_CASE("benchmark_cuda_host_device_copier","[benchmark_cuda_copy]",
-    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::native_copier_tag>,std::size_t>),
-    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::multithread_copier_tag>,std::size_t>)
+    (std::tuple<culib::cuda_copy::copier<culib::cuda_copy::native_copier_tag>,std::size_t>),
+    (std::tuple<culib::cuda_copy::copier<culib::cuda_copy::multithread_copier_tag>,std::size_t>)
 )
 {
     using copier_type = std::tuple_element_t<0,TestType>;
@@ -18,8 +18,8 @@ TEMPLATE_TEST_CASE("benchmark_cuda_host_device_copier","[benchmark_cuda_copy]",
     using benchmark_helpers::make_sizes;
     using benchmark_helpers::size_to_str;
     using benchmark_helpers::bandwidth_to_str;
-    using cuda_experimental::cuda_timer;
-    using device_alloc_type = cuda_experimental::device_allocator<value_type>;
+    using culib::cuda_timer;
+    using device_alloc_type = culib::device_allocator<value_type>;
     using host_alloc_type = std::allocator<value_type>;
 
     constexpr std::size_t initial_size{1<<10};
@@ -90,8 +90,8 @@ TEMPLATE_TEST_CASE("benchmark_cuda_host_device_copier","[benchmark_cuda_copy]",
 }
 
 TEMPLATE_TEST_CASE("benchmark_cuda_copier_device_device","[benchmark_cuda_copy]",
-    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::native_copier_tag>,std::size_t>),
-    (std::tuple<cuda_experimental::cuda_copy::copier<cuda_experimental::cuda_copy::multithread_copier_tag>,std::size_t>)
+    (std::tuple<culib::cuda_copy::copier<culib::cuda_copy::native_copier_tag>,std::size_t>),
+    (std::tuple<culib::cuda_copy::copier<culib::cuda_copy::multithread_copier_tag>,std::size_t>)
 )
 {
     using copier_type = std::tuple_element_t<0,TestType>;
@@ -99,8 +99,8 @@ TEMPLATE_TEST_CASE("benchmark_cuda_copier_device_device","[benchmark_cuda_copy]"
     using benchmark_helpers::make_sizes;
     using benchmark_helpers::size_to_str;
     using benchmark_helpers::bandwidth_to_str;
-    using cuda_experimental::cuda_timer;
-    using device_alloc_type = cuda_experimental::device_allocator<value_type>;
+    using culib::cuda_timer;
+    using device_alloc_type = culib::device_allocator<value_type>;
     using host_alloc_type = std::allocator<value_type>;
 
     constexpr std::size_t initial_size{1<<10};
@@ -140,9 +140,9 @@ TEMPLATE_TEST_CASE("benchmark_cuda_copier_device_device","[benchmark_cuda_copy]"
     }
 
     SECTION("copy_peer_device"){
-        using cuda_experimental::cuda_get_device_count;
-        using cuda_experimental::cuda_get_device;
-        using cuda_experimental::cuda_set_device;
+        using culib::cuda_get_device_count;
+        using culib::cuda_get_device;
+        using culib::cuda_set_device;
         constexpr int device0_id = 0;
         constexpr int device1_id = 1;
         if (cuda_get_device_count() > 1){

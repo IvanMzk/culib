@@ -3,7 +3,7 @@
 #include "cuda_helpers.hpp"
 
 TEST_CASE("test_multi_gpu","[test_multi_gpu]"){
-    using cuda_experimental::cuda_get_device_count;
+    using culib::cuda_get_device_count;
     auto n = cuda_get_device_count();
     if (n == 0){
         std::cout<<std::endl<<"NO DEVICE DETECTED, DEVICE TESTS WILL THROW"<<std::endl;
@@ -15,8 +15,8 @@ TEST_CASE("test_multi_gpu","[test_multi_gpu]"){
 }
 
 TEST_CASE("test_peer_access","[test_multi_gpu]"){
-    using cuda_experimental::cuda_get_device_count;
-    using cuda_experimental::cuda_device_can_access_peer;
+    using culib::cuda_get_device_count;
+    using culib::cuda_device_can_access_peer;
     auto n = cuda_get_device_count();
     for (int i{0}; i!=n; ++i){
         for (int j{0}; j!=n; ++j){
@@ -27,8 +27,8 @@ TEST_CASE("test_peer_access","[test_multi_gpu]"){
 }
 
 TEST_CASE("test_properties","[test_multi_gpu]"){
-    using cuda_experimental::cuda_get_device_count;
-    using cuda_experimental::cuda_get_device_properties;
+    using culib::cuda_get_device_count;
+    using culib::cuda_get_device_properties;
     auto n = cuda_get_device_count();
     for (int i{0}; i!=n; ++i){
         auto prop = cuda_get_device_properties(i);

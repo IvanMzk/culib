@@ -1,7 +1,7 @@
 #ifndef CUDA_COPY_HPP_
 #define CUDA_COPY_HPP_
 
-#include <immintrin.h>
+//#include <immintrin.h>
 #include <exception>
 #include <cstring>
 #include "thread_pool.hpp"
@@ -9,7 +9,7 @@
 #include "cuda_pointer.hpp"
 #include "cuda_allocator.hpp"
 
-namespace cuda_experimental{
+namespace culib{
 namespace cuda_copy{
 
 class bad_alignment_exception : public std::runtime_error
@@ -480,6 +480,6 @@ auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::r
     return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
 }
 
-}   //end of namespace cuda_experimental
+}   //end of namespace culib
 
 #endif

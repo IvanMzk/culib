@@ -5,7 +5,7 @@
 #include "cuda_memory.hpp"
 
 namespace test_cuda_memory{
-using cuda_experimental::basic_pointer;
+using culib::basic_pointer;
 template<typename T>
 class test_pointer : public basic_pointer<T, test_pointer>
 {
@@ -133,9 +133,9 @@ TEMPLATE_TEST_CASE("test_device_pointer","[test_cuda_memory]",
 )
 {
     using value_type = TestType;
-    using device_allocator_type = cuda_experimental::device_allocator<value_type>;
-    using cuda_experimental::cuda_get_device;
-    using cuda_experimental::device_pointer;
+    using device_allocator_type = culib::device_allocator<value_type>;
+    using culib::cuda_get_device;
+    using culib::device_pointer;
 
     device_allocator_type allocator{};
     constexpr size_t n = 100;
