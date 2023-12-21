@@ -6,7 +6,7 @@
         {
             "type": "shell",
             "label": "cmake generate",
-            "command": "cmake -S ${workspaceFolder} -B ${workspaceFolder}/build -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=ON",
+            "command": "cmake -S ${workspaceFolder} -B ${workspaceFolder}/build -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST=ON -DBUILD_BENCHMARK=ON",
             "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"

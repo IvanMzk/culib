@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <iostream>
 #include <chrono>
 #include <thread>
 #include "cuda_runtime.h"
@@ -128,10 +129,17 @@ public:
         other.event = 0;
         return *this;
     }
-    ~cuda_timer(){cuda_event_destroy(event);}
+    ~cuda_timer(){
+        if (event){
+            cuda_event_destroy(event);
+        }
+    }
     cuda_timer(cudaStream_t stream = cudaStreamLegacy):
         event{cuda_event_create()}
-    {cuda_error_check(cudaEventRecord(event, stream));}
+    {
+        cuda_error_check(cudaEventRecord(event, stream));
+    }
+
     friend auto operator-(const cuda_timer& end, const cuda_timer& start){
         cuda_error_check(cudaEventSynchronize(start.event));
         cuda_error_check(cudaEventSynchronize(end.event));
