@@ -15,6 +15,7 @@ target_sources(Test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_pointer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_allocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_copy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_algorithm.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_cuda_storage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_multi_device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp

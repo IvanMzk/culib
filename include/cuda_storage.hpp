@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <iostream>
-#include "cuda_memory.hpp"
+#include "cuda_algorithm.hpp"
 
 namespace culib{
 
@@ -81,7 +81,7 @@ public:
     template<typename It, std::enable_if_t<detail::is_iterator<It>,int> =0 >
     cuda_storage(It first, It last, const allocator_type& alloc = allocator_type()):
         allocator_{alloc},
-        size_{std::distance(first,last)},
+        size_{static_cast<size_type>(std::distance(first,last))},
         begin_{allocate(size_)}
     {
         copy(first,last,begin_);

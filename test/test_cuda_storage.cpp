@@ -1,5 +1,6 @@
 #include <vector>
 #include <list>
+#include <numeric>
 #include "catch.hpp"
 #include "cuda_storage.hpp"
 
@@ -82,16 +83,17 @@ TEMPLATE_TEST_CASE("test_cuda_storage_pointers_range_constructor","[test_cuda_st
     using value_type = typename storage_type::value_type;
 
     SECTION("host_pointers_range"){
-        value_type host_data[]{1,2,3,4,5,6,7,8,9,10};
-        constexpr std::size_t n{sizeof(host_data)/sizeof(value_type)};
+        const auto n = 1024;
+        std::vector<value_type> host_data(n);
+        std::iota(host_data.begin(),host_data.end(),value_type{0});
         SECTION("not_empty_range"){
-            auto cuda_storage = storage_type(host_data, host_data+n);
+            auto cuda_storage = storage_type(host_data.data(), host_data.data()+n);
             REQUIRE(cuda_storage.size() == n);
             REQUIRE(!cuda_storage.empty());
-            REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), host_data));
+            REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), host_data.begin()));
         }
         SECTION("empty_range"){
-            auto cuda_storage = storage_type(host_data, host_data);
+            auto cuda_storage = storage_type(host_data.data(), host_data.data());
             REQUIRE(cuda_storage.size() == 0);
             REQUIRE(cuda_storage.empty());
         }
@@ -152,15 +154,17 @@ TEMPLATE_TEST_CASE("test_cuda_storage_std_iterators_range_constructor","[test_cu
     using storage_type = culib::cuda_storage<value_type, culib::device_allocator<value_type>>;
     using size_type = typename storage_type::size_type;
 
-    auto expected = container_type{1,2,3,4,5,6,7,8,9,10};
+    const auto n = 1024;
+    container_type expected(n);
+    std::iota(expected.begin(),expected.end(),value_type{0});
     SECTION("not_empty_range"){
-        auto cuda_storage = storage_type(expected.begin(), expected.end());
+        storage_type cuda_storage(expected.begin(), expected.end());
         REQUIRE(cuda_storage.size() == static_cast<size_type>(expected.size()));
         REQUIRE(!cuda_storage.empty());
         REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), expected.begin()));
     }
     SECTION("empty_range"){
-        auto cuda_storage = storage_type(expected.begin(), expected.begin());
+        storage_type cuda_storage(expected.begin(), expected.begin());
         REQUIRE(cuda_storage.size() == 0);
         REQUIRE(cuda_storage.empty());
     }

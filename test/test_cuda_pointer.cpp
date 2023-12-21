@@ -2,7 +2,7 @@
 #include <array>
 #include <numeric>
 #include "catch.hpp"
-#include "cuda_memory.hpp"
+#include "cuda_algorithm.hpp"
 
 namespace test_cuda_memory{
 using culib::basic_pointer;

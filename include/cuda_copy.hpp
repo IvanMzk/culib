@@ -1,7 +1,6 @@
 #ifndef CUDA_COPY_HPP_
 #define CUDA_COPY_HPP_
 
-//#include <immintrin.h>
 #include <exception>
 #include <cstring>
 #include <immintrin.h>
@@ -27,6 +26,7 @@ public:
 //host memcpy using avx
 using avx_block_type = __m256i;
 void* memcpy_avx(void* dst_host, const void* src_host, std::size_t n);
+
 //memcpy implementation used in memcpy_multithread
 inline constexpr void*(*memcpy_impl)(void*,const void*,std::size_t) = std::memcpy;
 //inline constexpr void*(*memcpy_impl)(void*,const void*,std::size_t) = memcpy_avx;
@@ -36,9 +36,9 @@ struct multithread_copier_tag{};
 
 using copier_selector_type = multithread_copier_tag;
 //using copier_selector_type = native_copier_tag;
-inline constexpr std::size_t copy_pool_size = 8;
+inline constexpr std::size_t copy_pool_size = 4;
 inline constexpr std::size_t memcpy_workers = 4;
-inline constexpr std::size_t locked_pool_size = 8;
+inline constexpr std::size_t locked_pool_size = 4;
 inline constexpr std::size_t locked_buffer_size = 64*1024*1024;
 inline constexpr std::size_t locked_buffer_alignment = 4096;   //every buffer in locked pool must be aligned at least at locked_buffer_alignment, 0 - no alignment check
 inline constexpr std::size_t multithread_threshold = 4*1024*1024;
@@ -456,30 +456,6 @@ static auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer
 };  //end of struct copier<multithread_copier_tag>{
 
 }   //end of namespace cuda_copy
-
-//pageable to device
-template<typename T>
-auto copy(T* first, T* last, device_pointer<std::remove_const_t<T>> d_first){
-    return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
-}
-template<typename It, typename T, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>, int> =0>
-auto copy(It first, It last, device_pointer<T> d_first){
-    return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
-}
-//device to pageable
-template<typename T>
-auto copy(device_pointer<T> first, device_pointer<T> last, std::remove_const_t<T>* d_first){
-    return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
-}
-template<typename T, typename It, std::enable_if_t<!culib::detail::is_basic_pointer_v<It>,int> =0>
-auto copy(device_pointer<T> first, device_pointer<T> last, It d_first){
-    return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
-}
-//device device
-template<typename T>
-auto copy(device_pointer<T> first, device_pointer<T> last, device_pointer<std::remove_const_t<T>> d_first){
-    return cuda_copy::copier<cuda_copy::copier_selector_type>::copy(first,last,d_first);
-}
 
 }   //end of namespace culib
 
