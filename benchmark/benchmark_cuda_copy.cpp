@@ -79,12 +79,14 @@ TEST_CASE("benchmark_cuda_host_device_copier","[benchmark_cuda_copy]")
     constexpr std::size_t n_iters{1};
 
     auto copy_native = [](auto first, auto last, auto dfirst){
+        using value_type = typename std::iterator_traits<decltype(dfirst)>::value_type;
         copier<native_copier_tag>::copy(first,last,dfirst);
-        return *dfirst;
+        return static_cast<value_type>(*dfirst);
     };
     auto copy_multithread = [](auto first, auto last, auto dfirst){
+        using value_type = typename std::iterator_traits<decltype(dfirst)>::value_type;
         copier<multithread_copier_tag>::copy(first,last,dfirst);
-        return *dfirst;
+        return static_cast<value_type>(*dfirst);
     };
 
     benchmark_cuda_copy_host_pointer("bench culib::cuda_copy::copier, host pointer, native_copy",sizes,n_iters,copy_native);
@@ -106,8 +108,9 @@ TEST_CASE("benchmark_cuda_host_device_copy_algorithm","[benchmark_cuda_copy]")
     constexpr std::size_t n_iters{1};
 
     auto copy_algo = [](auto first, auto last, auto dfirst){
+        using value_type = typename std::iterator_traits<decltype(dfirst)>::value_type;
         copy(first,last,dfirst);
-        return *dfirst;
+        return static_cast<value_type>(*dfirst);
     };
 
     benchmark_cuda_copy_host_pointer("bench culib::copy, host pointer",sizes,n_iters,copy_algo);
