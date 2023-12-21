@@ -8,7 +8,6 @@ set(cmake_dir ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 find_library(CUDART_LIBRARY cudart ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 include(${cmake_dir}/FindAvxDetect.cmake)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}//..//multithreading multithreading)
 add_subdirectory(${src_dir})
 
 #helper target to propagate common settings
@@ -20,7 +19,6 @@ target_include_directories(common_config_
 )
 target_link_libraries(common_config_
     INTERFACE ${CUDART_LIBRARY}
-    INTERFACE multithreading
     INTERFACE AvxDetect::AvxDetect
 )
 

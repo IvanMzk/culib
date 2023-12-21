@@ -4,8 +4,9 @@
 #include <exception>
 #include <cstring>
 #include <immintrin.h>
-#include "thread_pool.hpp"
-#include "bounded_pool.hpp"
+//#include "thread_pool.hpp"
+//#include "bounded_pool.hpp"
+#include "multithreading.hpp"
 #include "cuda_pointer.hpp"
 #include "cuda_allocator.hpp"
 
@@ -36,7 +37,7 @@ struct multithread_copier_tag{};
 
 using copier_selector_type = multithread_copier_tag;
 //using copier_selector_type = native_copier_tag;
-inline constexpr std::size_t copy_pool_size = 4;
+//inline constexpr std::size_t copy_pool_size = 4;
 inline constexpr std::size_t memcpy_workers = 4;
 inline constexpr std::size_t locked_pool_size = 4;
 inline constexpr std::size_t locked_buffer_size = 64*1024*1024;
@@ -97,12 +98,11 @@ private:
 using locked_uninitialized_memory = cuda_uninitialized_memory<locked_allocator<std::byte>,locked_buffer_alignment>;
 
 inline auto& locked_pool(){
-    static bounded_pool::mc_bounded_pool<locked_uninitialized_memory> pool{locked_pool_size, locked_buffer_size};
+    static culib::multithreading::mc_bounded_pool<locked_uninitialized_memory> pool{locked_pool_size, locked_buffer_size};
     return pool;
 }
 inline auto& copy_pool(){
-    static thread_pool::thread_pool_v4 pool{copy_pool_size};
-    return pool;
+    return culib::multithreading::get_pool();
 }
 
 //multithread memcpy
