@@ -6,6 +6,9 @@ set(include_dir ${CMAKE_CURRENT_LIST_DIR}/include)
 set(src_dir ${CMAKE_CURRENT_LIST_DIR}/src)
 set(cmake_dir ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
 find_library(CUDART_LIBRARY cudart ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 include(${cmake_dir}/FindAvxDetect.cmake)
 add_subdirectory(${src_dir})
@@ -18,6 +21,7 @@ target_include_directories(common_config_
     INTERFACE $<BUILD_INTERFACE:${include_dir}>
 )
 target_link_libraries(common_config_
+    INTERFACE Threads::Threads
     INTERFACE ${CUDART_LIBRARY}
     INTERFACE AvxDetect::AvxDetect
 )
