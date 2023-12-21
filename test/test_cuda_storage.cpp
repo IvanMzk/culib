@@ -217,7 +217,6 @@ TEMPLATE_TEST_CASE("test_cuda_storage_copy_assignment","[test_cuda_storage]",
 {
     using storage_type = TestType;
     using size_type = typename storage_type::size_type;
-    using value_type = typename storage_type::value_type;
     using allocator_type = typename storage_type::allocator_type;
     REQUIRE(!typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment());
     REQUIRE(typename std::allocator_traits<allocator_type>::is_always_equal());
