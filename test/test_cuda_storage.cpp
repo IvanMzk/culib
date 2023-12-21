@@ -258,7 +258,7 @@ TEST_CASE("test_cuda_storage_move_constructor","[test_cuda_storage]")
     using value_type = double;
     using storage_type = culib::cuda_storage<value_type, culib::device_allocator<value_type>>;
 
-    auto storage_size = 100;
+    std::size_t storage_size = 100;
     auto cuda_storage = storage_type(storage_size, 1.0);
     auto data = cuda_storage.data();
     auto copy_moved = std::move(cuda_storage);
