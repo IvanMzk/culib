@@ -96,7 +96,6 @@ auto sum(const Container& intervals){
 }
 template<typename Container>
 auto mean(const Container& intervals){
-    using value_type = typename Container::value_type;
     return sum(intervals)/intervals.size();
 }
 template<typename Container>

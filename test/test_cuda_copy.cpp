@@ -43,7 +43,6 @@ TEMPLATE_TEST_CASE("test_cuda_copier_host_device_pointers_range","[test_cuda_cop
     constexpr auto sizes = make_sizes<initial_size,factor,n>();
     device_alloc_type device_alloc{};
     host_alloc_type host_alloc{};
-    using container_type = std::vector<value_type>;
 
     for (const auto& size : sizes){
         auto device_ptr = device_alloc.allocate(size);

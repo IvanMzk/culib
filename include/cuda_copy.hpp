@@ -42,7 +42,6 @@ struct multithread_copier_tag{};
 
 using copier_selector_type = multithread_copier_tag;
 //using copier_selector_type = native_copier_tag;
-//inline constexpr std::size_t copy_pool_size = 4;
 inline constexpr std::size_t memcpy_workers = 4;
 inline constexpr std::size_t locked_pool_size = 4;
 inline constexpr std::size_t locked_buffer_size = 64*1024*1024;
@@ -159,7 +158,6 @@ inline auto uninitialized_copyn(InputIt first, Size n, ForwardIt d_first){
 
 template<typename InputIt, typename Size, typename ForwardIt>
 inline auto copyn_(InputIt first, Size n, ForwardIt d_first, std::input_iterator_tag){
-    using value_type = typename std::iterator_traits<ForwardIt>::value_type;
     for (; n > 0; ++first, (void) ++d_first, --n) {
         *d_first = *first;
     }
