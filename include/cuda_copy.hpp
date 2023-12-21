@@ -1,11 +1,16 @@
+/*
+* Copyright (c) 2022 Ivan Malezhyk <ivanmzk@gmail.com>
+*
+* Distributed under the Boost Software License, Version 1.0.
+* The full license is in the file LICENSE.txt, distributed with this software.
+*/
+
 #ifndef CUDA_COPY_HPP_
 #define CUDA_COPY_HPP_
 
 #include <exception>
 #include <cstring>
 #include <immintrin.h>
-//#include "thread_pool.hpp"
-//#include "bounded_pool.hpp"
 #include "multithreading.hpp"
 #include "cuda_pointer.hpp"
 #include "cuda_allocator.hpp"
