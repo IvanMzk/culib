@@ -28,8 +28,11 @@ target_link_libraries(my_target PRIVATE culib)
 ...
 ```
 
-## Examples of usage
+## Usage
 
+```
+#include ""
+```
 
 
 ## Build tests and benchmarks

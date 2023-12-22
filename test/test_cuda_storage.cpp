@@ -180,31 +180,6 @@ TEST_CASE("test_cuda_storage_init_list_constructor","[test_cuda_storage]")
     REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), std::initializer_list<value_type>{1,2,3,4,5,6,7,8,9,10}.begin()));
 }
 
-TEST_CASE("test_cuda_storage_free","[test_cuda_storage]")
-{
-    using storage_type = culib::cuda_storage<float, culib::device_allocator<float>>;
-    auto cuda_storage = storage_type({1,2,3,4,5,6,7,8,9,10});
-    cuda_storage.free();
-    REQUIRE(cuda_storage.size() == 0);
-    REQUIRE(cuda_storage.empty());
-}
-
-TEST_CASE("test_cuda_storage_copy_constructor","[test_cuda_storage]")
-{
-    using value_type = double;
-    using storage_type = culib::cuda_storage<value_type, culib::device_allocator<value_type>>;
-
-    std::size_t storage_size = 100;
-    auto cuda_storage = storage_type(storage_size, 1.0);
-    auto copy = cuda_storage.clone();
-    REQUIRE(copy.size() == storage_size);
-    REQUIRE(cuda_storage.size() == storage_size);
-    REQUIRE(!copy.empty());
-    REQUIRE(!cuda_storage.empty());
-    REQUIRE(copy.data() != cuda_storage.data());
-    REQUIRE(std::equal(cuda_storage.begin(), cuda_storage.end(), copy.begin()));
-}
-
 TEST_CASE("test_cuda_storage_copy_assignment","[test_cuda_storage]")
 {
 
@@ -290,4 +265,37 @@ TEST_CASE("test_cuda_storage_move_assignment","[test_cuda_storage]")
     REQUIRE(cuda_storage.empty());
 }
 
+TEST_CASE("test_cuda_storage_clone","[test_cuda_storage]")
+{
+    using value_type = double;
+    using storage_type = culib::cuda_storage<value_type, culib::device_allocator<value_type>>;
+
+    std::size_t storage_size = 100;
+    storage_type stor(storage_size, 1.0);
+    auto copy = stor.clone();
+    REQUIRE(copy.size() == storage_size);
+    REQUIRE(stor.size() == storage_size);
+    REQUIRE(!copy.empty());
+    REQUIRE(!stor.empty());
+    REQUIRE(copy.data() != stor.data());
+    REQUIRE(std::equal(stor.begin(), stor.end(), copy.begin()));
+}
+
+TEST_CASE("test_cuda_storage_clear","[test_cuda_storage]")
+{
+    using storage_type = culib::cuda_storage<float, culib::device_allocator<float>>;
+    storage_type stor({1,2,3,4,5,6,7,8,9,10});
+    stor.clear();
+    REQUIRE(stor.size() == 0);
+    REQUIRE(stor.empty());
+}
+
+TEST_CASE("test_cuda_storage_data","[test_cuda_storage]")
+{
+    using storage_type = culib::cuda_storage<float, culib::device_allocator<float>>;
+    storage_type stor({1,2,3,4,5,6,7,8,9,10});
+    const storage_type& cstor{stor};
+    REQUIRE(stor.data() == stor.begin().get());
+    REQUIRE(cstor.data() == cstor.begin().get());
+}
 

@@ -174,9 +174,12 @@ public:
     using const_reference = std::conditional_t<std::is_const_v<T>,T, device_data_reference>;
     using device_id_type = int;
     static constexpr device_id_type undefined_device = -1;
-    device_pointer():
+    device_pointer(std::nullptr_t):
         basic_poiner_base{nullptr},
         device_{undefined_device}
+    {}
+    device_pointer():
+        device_pointer{nullptr}
     {}
     device_pointer(pointer p, device_id_type device__):
         basic_poiner_base{p},
