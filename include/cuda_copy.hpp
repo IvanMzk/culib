@@ -14,6 +14,7 @@
 #include "multithreading.hpp"
 #include "cuda_pointer.hpp"
 #include "cuda_allocator.hpp"
+#include "cuda_copy_config.hpp"
 
 namespace culib{
 namespace cuda_copy{
@@ -29,25 +30,9 @@ public:
     {}
 };
 
-//host memcpy using avx
 using avx_block_type = __m256i;
 void* memcpy_avx(void* dst_host, const void* src_host, std::size_t n);
-
-//memcpy implementation used in memcpy_multithread
-inline constexpr void*(*memcpy_impl)(void*,const void*,std::size_t) = std::memcpy;
-//inline constexpr void*(*memcpy_impl)(void*,const void*,std::size_t) = memcpy_avx;
-
-struct native_copier_tag{};
-struct multithread_copier_tag{};
-
-using copier_selector_type = multithread_copier_tag;
-//using copier_selector_type = native_copier_tag;
-inline constexpr std::size_t memcpy_workers = 4;
-inline constexpr std::size_t locked_pool_size = 4;
-inline constexpr std::size_t locked_buffer_size = 64*1024*1024;
-inline constexpr std::size_t locked_buffer_alignment = 4096;   //every buffer in locked pool must be aligned at least at locked_buffer_alignment, 0 - no alignment check
-inline constexpr std::size_t multithread_threshold = 4*1024*1024;
-inline constexpr std::size_t peer_multithread_threshold = 128*1024*1024;
+inline constexpr void*(*memcpy_impl)(void*,const void*,std::size_t) = [](){if constexpr (native_memcpy){return std::memcpy;}else{return memcpy_avx;}}();
 
 template<typename Alloc, std::size_t Alignment = 0>
 class cuda_uninitialized_memory
@@ -136,7 +121,7 @@ void* memcpy_multithread(void* dst, const void* src, std::size_t n, void*(*impl)
 }
 
 template<typename It>
-constexpr bool is_random_access_iterator_v = std::is_base_of_v<std::random_access_iterator_tag, typename std::iterator_traits<It>::iterator_category>;
+constexpr bool is_random_access_iterator_v = std::is_convertible_v<typename std::iterator_traits<It>::iterator_category, std::random_access_iterator_tag>;
 
 //like library version but returns both iterators updated
 template<typename InputIt, typename Size, typename ForwardIt>
