@@ -15,6 +15,8 @@ Such a pointer can be dereferenced on host side - proxy object is returned.
 
 - device and page-locked memory allocators.
 
+- CUDA helpers like: `cuda_error_check`, `cuda_set_device`, `cuda_timer`, ...
+
 ## Including into project
 
 Cmake `add_subdirectory(...)` command can be used to bring `culib` into your project:
@@ -84,6 +86,14 @@ int main(int argc, const char* argv[]){
 
     //clear - deallocates device memory block
     stor2_copy.clear();
+
+    //print
+    std::cout<<std::endl<<stor0;    //[10 {1.1 2 3 4 5 6 7 8 9 10}]
+
+    //call CUDA API
+    using culib::cuda_assert;
+    cuda_error_check(cudaMemset(stor2.begin(),0,stor2.size()*sizeof(double)));
+    std::cout<<std::endl<<*(stor2.begin()+1234);    //0
 
     return 0;
 }
