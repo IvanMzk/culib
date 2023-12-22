@@ -30,7 +30,7 @@ target_link_libraries(my_target PRIVATE culib)
 
 ## Usage
 
-```
+```cpp
 #include <iostream>
 #include "cuda_storage.hpp"
 
@@ -79,8 +79,8 @@ int main(int argc, const char* argv[]){
     //clone
     auto stor2_copy = stor2.clone();
     //clone to peer
-    //culib::cuda_set_device(1);
-    //auto stor2_copy_peer = stor2.clone();
+    culib::cuda_set_device(1);
+    auto stor2_copy_peer = stor2.clone();
 
     //clear - deallocates device memory block
     stor2_copy.clear();
