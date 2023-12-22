@@ -3,7 +3,7 @@
 Library provides:
 
 - `device_pointer` class template abstraction, represents device memory address.
-Its objects can be dereferenced on host side - proxy object is returned.
+Such a pointer can be dereferenced on host side - proxy object is returned.
 
 - generic `copy` algorithm to copy data in any direction, supports copy in multiple threads.
 

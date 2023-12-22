@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <iostream>
+#include <sstream>
 #include "cuda_algorithm.hpp"
 
 namespace culib{
@@ -254,6 +255,35 @@ private:
     pointer begin_{nullptr};
     pointer end_{nullptr};
 };
+
+template<typename T>
+auto str(const cuda_storage<T>& stor){
+    std::stringstream ss{};
+    static constexpr std::size_t print_limit = 50;
+    static constexpr std::size_t chunk_size = 5;
+    static_assert(2*chunk_size < print_limit);
+    std::array<T, print_limit> elements;
+    const auto n = stor.size();
+    ss<<"["<<n<<" {";
+    if (n > print_limit){
+        copy(stor.begin(),stor.begin()+chunk_size,elements.begin());
+        copy(stor.end()-chunk_size,stor.end(),elements.begin()+chunk_size);
+        std::for_each(elements.begin(), elements.begin()+chunk_size, [&ss](const auto& e){ss<<e<<" ";});
+        ss<<" ... ";
+        std::for_each(elements.begin()+chunk_size, elements.begin()+(2*chunk_size-1), [&ss](const auto& e){ss<<e<<" ";});
+        ss<<*(elements.begin()+(2*chunk_size-1))<<"}]";
+    }else{
+        copy(stor.begin(),stor.end(),elements.begin());
+        std::for_each(elements.begin(), elements.begin()+(n-1), [&ss](const auto& e){ss<<e<<" ";});
+        ss<<*(elements.begin()+(n-1))<<"}]";
+    }
+    return ss.str();
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const cuda_storage<T>& stor){
+    return os<<str(stor);
+}
 
 }   //end of namespace culib
 #endif

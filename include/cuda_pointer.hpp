@@ -76,7 +76,9 @@ private:
     basic_pointer(basic_pointer&&) = default;
     explicit basic_pointer(pointer ptr_ = nullptr):
         ptr{ptr_}
-    {}
+    {
+        static_assert(std::is_convertible_v<derived_type&,basic_pointer&>);
+    }
     auto& to_derived(){return static_cast<derived_type&>(*this);}
     void set_ptr(pointer ptr_){ptr = ptr_;}
     pointer ptr;
@@ -98,7 +100,7 @@ auto operator--(basic_pointer<T,D>& lhs, int){
 template<typename T, template<typename> typename D, typename U, std::enable_if_t<!detail::is_basic_pointer_v<U>,int> =0>
 auto operator+(const U& lhs, const basic_pointer<T,D>& rhs){return rhs+lhs;}
 template<typename T, template<typename> typename D, typename U, std::enable_if_t<!detail::is_basic_pointer_v<U>,int> =0 >
-auto operator-(const basic_pointer<T,D>& lhs, const U& rhs){return lhs+-rhs;}
+auto operator-(const basic_pointer<T,D>& lhs, const U& rhs){return lhs+-static_cast<typename basic_pointer<T,D>::difference_type>(rhs);}
 
 template<typename T, template<typename> typename D>
 auto operator-(const basic_pointer<T,D>& lhs, const basic_pointer<T,D>& rhs){return lhs.get() - rhs.get();}

@@ -299,3 +299,15 @@ TEST_CASE("test_cuda_storage_data","[test_cuda_storage]")
     REQUIRE(cstor.data() == cstor.begin().get());
 }
 
+TEST_CASE("test_cuda_storage_str","[test_cuda_storage]")
+{
+    using value_type = double;
+    using storage_type = culib::cuda_storage<value_type, culib::device_allocator<value_type>>;
+    storage_type stor{1,2,3,4,5,6,7,8,9,10,11,12};
+    REQUIRE(str(stor)==std::string{"[12 {1 2 3 4 5 6 7 8 9 10 11 12}]"});
+    std::vector<value_type> vec(1234);
+    std::iota(vec.begin(),vec.end(),0.0);
+    storage_type stor1(vec.begin(),vec.end());
+    REQUIRE(str(stor1)==std::string{"[1234 {0 1 2 3 4  ... 1229 1230 1231 1232 1233}]"});
+}
+
